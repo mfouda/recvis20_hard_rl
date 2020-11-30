@@ -52,14 +52,21 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
             )
             self.replay_buffer.add_paths(init_expl_paths)
             self.expl_data_collector.end_epoch(-1)
-
+        self.num_obstacles = 0
         for epoch in gt.timed_for(
             range(self._start_epoch, self.num_epochs), save_itrs=True,
         ):
+            if self.mode is not None and self.mode == "cur-v0":
+                if epoch % 150 == 0:
+                    self.num_obstacles+=1
+                    reset_kwargs = {'num_obstacles': self.num_obstacles}
+            else:
+                reset_kwargs = {}
             self.eval_data_collector.collect_new_paths(
                 self.max_path_length,
                 self.num_eval_steps_per_epoch,
                 discard_incomplete_paths=True,
+                reset_kwargs=reset_kwargs,
             )
             gt.stamp("evaluation sampling")
 
@@ -68,6 +75,7 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
                     self.max_path_length,
                     self.num_expl_steps_per_train_loop,
                     discard_incomplete_paths=False,
+                    reset_kwargs=reset_kwargs,
                 )
                 gt.stamp("exploration sampling", unique=False)
 

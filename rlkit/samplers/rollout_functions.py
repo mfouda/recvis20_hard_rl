@@ -1,5 +1,5 @@
 import numpy as np
-from rlkit.rlkit.samplers.rollout import Rollout
+from rlkit.samplers.rollout import Rollout
 
 
 def flatten_n(xs):

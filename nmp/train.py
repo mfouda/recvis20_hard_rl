@@ -9,8 +9,8 @@ from nmp import settings
 
 
 @click.command(help="nmp.train env_name exp_name")
-@click.argument("env-name", type=str)
-@click.argument("exp-dir", type=str)
+@click.argument("env-name", default='Maze-grid-v3', type=str)
+@click.argument("exp-dir", default='maze_baseline', type=str)
 @click.option("-s", "--seed", default=None, type=int)
 @click.option("-resume", "--resume/--no-resume", is_flag=True, default=False)
 @click.option("-mode", "--mode", default="her")
