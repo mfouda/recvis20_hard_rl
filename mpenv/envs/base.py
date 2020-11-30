@@ -121,9 +121,13 @@ class Base(gym.Env):
             qw = ConfigurationWrapper(self.model_wrapper, qw)
         self.state = qw
 
-    def set_goal_state(self, goal_qw):
+    def set_goal_state(self, goal_qw, bounds=None):
         if isinstance(goal_qw, np.ndarray):
             goal_qw = ConfigurationWrapper(self.model_wrapper, goal_qw)
+
+        _, goal_qw = self.model_wrapper.clip(
+            goal_qw, bounds[0], bounds[1]
+        )
         self.goal_state = goal_qw
 
     def random_configuration(self, only_free=True):

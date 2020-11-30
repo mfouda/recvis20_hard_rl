@@ -31,6 +31,10 @@ class MazeGoal(Base):
         self.freeflyer_bounds = np.array(
             [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0], [1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]]
         )
+        self.freeflyer_bounds_goal = np.array(
+            [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0], [1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0]]
+        )
+
         self.robot_props = ROBOTS_PROPS["sphere2d"]
         self.action_space = spaces.Box(
             low=-1, high=1, shape=(self.robot_props["action_dim"],), dtype=np.float32
@@ -38,23 +42,45 @@ class MazeGoal(Base):
 
         self.fig, self.ax, self.pos = None, None, None
 
-    def _reset(self, idx_env=None, start=None, goal=None):
+    def _reset(self, idx_env=None, start=None, goal=None, bounds=None, filter_simple = True, num_obstacles=None):
         model_wrapper = self.model_wrapper
+        if bounds is not None:
+            freeflyer_bounds_goal = bounds
+        else:
+            freeflyer_bounds_goal = self.freeflyer_bounds
+
         self.robot = self.add_robot("sphere2d", self.freeflyer_bounds)
         self.geoms, self.idx_env = self.get_obstacles_geoms(idx_env)
-        for geom_obj in self.geoms.geom_objs:
+        # if per_obstacles is not None:
+        #     num_obstacles = int(per_obstacles * len(self.geoms.geom_objs))
+        k = 0
+        for i, geom_obj in enumerate(self.geoms.geom_objs):
+            # if per_obstacles is not None and i > num_obstacles:
+            #     break
+            x, y = geom_obj.placement.translation[:2]
+            if (x > 0.1 and x < 0.9) and (y > 0.1 and y < 0.9):
+                k+=1
+            if num_obstacles is not None and k > num_obstacles and ((x > 0.1 and x < 0.9) and (y > 0.1 and y < 0.9)):
+                continue
+
             self.add_obstacle(geom_obj, static=True)
+
         model_wrapper.create_data()
 
-        valid_sample = False
-        while not valid_sample:
+        if filter_simple:
+            valid_sample = False
+            while not valid_sample:
+                self.state = self.random_configuration()
+                self.goal_state = self.random_configuration()
+                valid_sample = self.validate_sample(self.state, self.goal_state)
+        else:
             self.state = self.random_configuration()
             self.goal_state = self.random_configuration()
-            valid_sample = self.validate_sample(self.state, self.goal_state)
+
         if start is not None:
             self.set_state(start)
         if goal is not None:
-            self.set_goal_state(goal)
+            self.set_goal_state(goal, bounds=freeflyer_bounds_goal)
 
         if self.fig:
             plt.close()

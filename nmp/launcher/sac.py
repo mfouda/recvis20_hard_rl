@@ -2,6 +2,10 @@ import gym
 import torch
 from torch import nn as nn
 
+import sys
+
+sys.path.insert(1, '../../rlkit/')
+
 import rlkit.torch.pytorch_util as ptu
 import mpenv.envs
 from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
