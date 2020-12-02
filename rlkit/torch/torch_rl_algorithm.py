@@ -22,6 +22,8 @@ from rlkit.samplers.data_collector import (
     GoalConditionedPathCollector,
     MdpPathCollector,
 )
+from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
+from rlkit.data_management.obs_dict_replay_buffer import ObsDictRelabelingBuffer
 
 import gym
 
@@ -49,6 +51,22 @@ def get_path_collector(variant, expl_env, eval_env, policy, eval_policy):
             representation_goal_key=variant["her"]["representation_goal_key"],
         )
     return expl_path_collector, eval_path_collector
+def get_replay_buffer(variant, expl_env):
+    """
+    Define replay buffer specific to the mode
+    """
+    mode = variant["mode"]
+    if mode == "vanilla":
+        replay_buffer = EnvReplayBuffer(
+            env=expl_env, **variant["replay_buffer_kwargs"],
+        )
+
+    elif mode == "her":
+        replay_buffer = ObsDictRelabelingBuffer(
+            env=expl_env, **variant["her"], **variant["replay_buffer_kwargs"]
+        )
+
+    return replay_buffer
 
 
 class TorchOnlineRLAlgorithm(OnlineRLAlgorithm):
@@ -95,18 +113,19 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
             range(self._start_epoch, self.num_epochs), save_itrs=True,
         ):
             if self.option is not None and self.option == "cur-v0":
-                if epoch % 150 == 0:
+                if epoch % self.cur_range == 0:
                     self.num_obstacles+=1
                     reset_kwargs = {'num_obstacles': self.num_obstacles}
             elif self.option is not None and self.option == "cur-v1":
-                if epoch % 150 == 0:
+                if epoch % self.cur_range == 0:
                     grid_size+=1
-                expl_env = gym.make("Maze-grid-v" + grid_size)
-                eval_env = gym.make("Maze-grid-v" + grid_size)
+                expl_env = gym.make("Maze-grid-v" + str(grid_size))
+                eval_env = gym.make("Maze-grid-v" + str(grid_size))
                 expl_env.seed(self.variant["seed"])
                 eval_env.set_eval()
                 expl_policy = self.policy
                 eval_policy = MakeDeterministic(self.policy)
+                self.replay_buffer = get_replay_buffer(self.variant, expl_env)
 
                 self.expl_data_collector, self.eval_data_collector = get_path_collector(
                     self.variant, expl_env, eval_env, expl_policy, eval_policy
@@ -121,7 +140,13 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
                 reset_kwargs=reset_kwargs,
             )
             gt.stamp("evaluation sampling")
-
+            if self.option is not None:
+              print("#############")
+              print("We are running a custom training with option: ", self.option)
+              print("the number of obstacles is: ", self.num_obstacles)
+              print("the grid size is: ", grid_size)
+              print("curriculum range: ", self.cur_range)
+              print("#############")
             for _ in range(self.num_train_loops_per_epoch):
                 new_expl_paths = self.expl_data_collector.collect_new_paths(
                     self.max_path_length,

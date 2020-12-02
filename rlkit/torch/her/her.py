@@ -7,6 +7,7 @@ class HERTrainer(TorchTrainer):
     def __init__(self, base_trainer: TorchTrainer):
         super().__init__()
         self._base_trainer = base_trainer
+        self.policy = base_trainer.policy
 
     def train_from_torch(self, data):
         obs = data["observations"]

@@ -141,6 +141,7 @@ def sac(variant):
         evaluation_data_collector=eval_path_collector,
         replay_buffer=replay_buffer,
         **variant["algorithm_kwargs"],
+        variant=variant,
     )
 
     algorithm.to(ptu.device)

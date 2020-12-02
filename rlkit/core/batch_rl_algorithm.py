@@ -27,6 +27,7 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         min_num_steps_before_training=0,
         option=None,
         variant=None,
+        cur_range=1500,
     ):
         super().__init__(
             trainer,
@@ -46,6 +47,7 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         self.min_num_steps_before_training = min_num_steps_before_training
         self.option = option
         self.variant = variant
+        self.cur_range = cur_range
 
     def _train(self):
         """ should be implemented in the inherited class"""

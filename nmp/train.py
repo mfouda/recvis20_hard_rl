@@ -37,6 +37,7 @@ from nmp import settings
 )
 @click.option("-snap-gap", "--snapshot-gap", default=10, type=int)
 @click.option("-option", "--option", default=None, type=str, help='cur-v0 | cur-v1')
+@click.option("-cur-range", "--cur-range", default=None, type=int, help='150 | 200 ...')
 
 def main(
     env_name,
@@ -61,6 +62,7 @@ def main(
     snapshot_gap,
     cpu,
     option,
+    cur_range,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -102,6 +104,7 @@ def main(
             min_num_steps_before_training=min_num_steps_before_training,
             max_path_length=horizon,
             option=option,
+            cur_range=cur_range,
         ),
         trainer_kwargs=dict(
             discount=0.99,

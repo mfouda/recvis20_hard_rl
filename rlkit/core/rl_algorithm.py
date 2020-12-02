@@ -39,6 +39,7 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         self.eval_data_collector = evaluation_data_collector
         self.replay_buffer = replay_buffer
         self._start_epoch = 0
+        self.policy = trainer.policy
 
         self.post_epoch_funcs = []
 
