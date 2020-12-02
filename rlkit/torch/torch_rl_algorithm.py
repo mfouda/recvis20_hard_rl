@@ -56,7 +56,7 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
         for epoch in gt.timed_for(
             range(self._start_epoch, self.num_epochs), save_itrs=True,
         ):
-            if self.mode is not None and self.mode == "cur-v0":
+            if self.option is not None and self.option == "cur-v0":
                 if epoch % 150 == 0:
                     self.num_obstacles+=1
                     reset_kwargs = {'num_obstacles': self.num_obstacles}

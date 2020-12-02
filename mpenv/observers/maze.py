@@ -26,14 +26,12 @@ class MazeObserver(BaseObserver):
         o = self.env.reset(**kwargs)
         edges = []
         geom_objs = self.env.geoms.geom_objs
-        # if kwargs['per_obstacles'] is not None:
-        #     num_obstacles = int(kwargs['per_obstacles'] * len(self.geoms.geom_objs))
         k = 0
         for i, obst in enumerate(geom_objs):
             x, y = obst.placement.translation[:2]
             if (x > 0.1 and x < 0.9) and (y > 0.1 and y < 0.9):
                 k+=1
-            if kwargs['num_obstacles'] is not None and k > kwargs['num_obstacles'] and ((x > 0.1 and x < 0.9) and (y > 0.1 and y < 0.9)):
+            if 'num_obstacles' in kwargs and k > kwargs['num_obstacles'] and ((x > 0.1 and x < 0.9) and (y > 0.1 and y < 0.9)):
                 continue
 
             half_side = obst.geometry.halfSide
@@ -57,9 +55,10 @@ class MazeObserver(BaseObserver):
         # edges = edges[dist < self.visible_cells / self.env.maze.nx]
 
         # uncomment for visualization
-        p0 = np.hstack((edges[:, :2], np.zeros((edges.shape[0], 1))))
-        p1 = np.hstack((edges[:, 2:], np.zeros((edges.shape[0], 1))))
-        self.env.o3d_viz.show_lines(p0, p1, blocking=False)
+        if self.visualize:
+          p0 = np.hstack((edges[:, :2], np.zeros((edges.shape[0], 1))))
+          p1 = np.hstack((edges[:, 2:], np.zeros((edges.shape[0], 1))))
+          self.env.o3d_viz.show_lines(p0, p1, blocking=False)
 
         edges_pad = np.zeros((self.max_edges, self.obstacle_point_dim))
         edges_pad[: edges.shape[0]] = edges
