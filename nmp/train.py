@@ -38,6 +38,8 @@ from nmp import settings
 @click.option("-snap-gap", "--snapshot-gap", default=10, type=int)
 @click.option("-option", "--option", default=None, type=str, help='cur-v0 | cur-v1')
 @click.option("-cur-range", "--cur-range", default=None, type=int, help='150 | 200 ...')
+@click.option("-max-grid-size", "--max-grid-size", default=None, type=int, help='150 | 200 ...')
+
 
 def main(
     env_name,
@@ -63,6 +65,7 @@ def main(
     cpu,
     option,
     cur_range,
+    max_grid_size,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -105,6 +108,7 @@ def main(
             max_path_length=horizon,
             option=option,
             cur_range=cur_range,
+            max_grid_size=max_grid_size,
         ),
         trainer_kwargs=dict(
             discount=0.99,

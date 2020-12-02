@@ -117,7 +117,7 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
                     self.num_obstacles+=1
                     reset_kwargs = {'num_obstacles': self.num_obstacles}
             elif self.option is not None and self.option == "cur-v1":
-                if epoch % self.cur_range == 0:
+                if epoch % self.cur_range == 0 and grid_size < self.max_grid_size:
                     grid_size+=1
                 expl_env = gym.make("Maze-grid-v" + str(grid_size))
                 eval_env = gym.make("Maze-grid-v" + str(grid_size))
@@ -146,6 +146,7 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
               print("the number of obstacles is: ", self.num_obstacles)
               print("the grid size is: ", grid_size)
               print("curriculum range: ", self.cur_range)
+              print("max grid size: ", self.max_grid_size)
               print("#############")
             for _ in range(self.num_train_loops_per_epoch):
                 new_expl_paths = self.expl_data_collector.collect_new_paths(

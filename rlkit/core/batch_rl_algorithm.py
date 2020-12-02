@@ -28,6 +28,7 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         option=None,
         variant=None,
         cur_range=1500,
+        max_grid_size=7,
     ):
         super().__init__(
             trainer,
@@ -48,6 +49,7 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         self.option = option
         self.variant = variant
         self.cur_range = cur_range
+        self.max_grid_size = max_grid_size
 
     def _train(self):
         """ should be implemented in the inherited class"""
