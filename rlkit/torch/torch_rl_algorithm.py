@@ -13,6 +13,43 @@ from tqdm import tqdm
 
 import gtimer as gt
 
+import sys
+# sys.path.insert(1, '../../nmp/')
+# sys.path.insert(1, '../../rlkit/')
+
+from rlkit.torch.sac.policies import MakeDeterministic
+from rlkit.samplers.data_collector import (
+    GoalConditionedPathCollector,
+    MdpPathCollector,
+)
+
+import gym
+
+def get_path_collector(variant, expl_env, eval_env, policy, eval_policy):
+    """
+    Define path collector
+    """
+    mode = variant["mode"]
+    if mode == "vanilla":
+        expl_path_collector = MdpPathCollector(expl_env, policy)
+        eval_path_collector = MdpPathCollector(eval_env, eval_policy)
+    elif mode == "her":
+        expl_path_collector = GoalConditionedPathCollector(
+            expl_env,
+            policy,
+            observation_key=variant["her"]["observation_key"],
+            desired_goal_key=variant["her"]["desired_goal_key"],
+            representation_goal_key=variant["her"]["representation_goal_key"],
+        )
+        eval_path_collector = GoalConditionedPathCollector(
+            eval_env,
+            eval_policy,
+            observation_key=variant["her"]["observation_key"],
+            desired_goal_key=variant["her"]["desired_goal_key"],
+            representation_goal_key=variant["her"]["representation_goal_key"],
+        )
+    return expl_path_collector, eval_path_collector
+
 
 class TorchOnlineRLAlgorithm(OnlineRLAlgorithm):
     def to(self, device, distributed=False):
@@ -53,6 +90,7 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
             self.replay_buffer.add_paths(init_expl_paths)
             self.expl_data_collector.end_epoch(-1)
         self.num_obstacles = 0
+        grid_size = 1 #start with grid size of 2
         for epoch in gt.timed_for(
             range(self._start_epoch, self.num_epochs), save_itrs=True,
         ):
@@ -60,6 +98,20 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
                 if epoch % 150 == 0:
                     self.num_obstacles+=1
                     reset_kwargs = {'num_obstacles': self.num_obstacles}
+            elif self.option is not None and self.option == "cur-v1":
+                if epoch % 150 == 0:
+                    grid_size+=1
+                expl_env = gym.make("Maze-grid-v" + grid_size)
+                eval_env = gym.make("Maze-grid-v" + grid_size)
+                expl_env.seed(self.variant["seed"])
+                eval_env.set_eval()
+                expl_policy = self.policy
+                eval_policy = MakeDeterministic(self.policy)
+
+                self.expl_data_collector, self.eval_data_collector = get_path_collector(
+                    self.variant, expl_env, eval_env, expl_policy, eval_policy
+                )
+                reset_kwargs = {}
             else:
                 reset_kwargs = {}
             self.eval_data_collector.collect_new_paths(

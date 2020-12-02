@@ -3,7 +3,6 @@ import torch
 from torch import nn as nn
 
 import sys
-
 sys.path.insert(1, '../../rlkit/')
 
 import rlkit.torch.pytorch_util as ptu

@@ -36,7 +36,7 @@ from nmp import settings
     help="all, last, gap, gap_and_last, none",
 )
 @click.option("-snap-gap", "--snapshot-gap", default=10, type=int)
-@click.option("-option", "--option", default=None, type=str, help='cur-v0')
+@click.option("-option", "--option", default=None, type=str, help='cur-v0 | cur-v1')
 
 def main(
     env_name,
