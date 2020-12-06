@@ -330,14 +330,14 @@ class PointNetSkillPriorMdl(SkillPriorMdl):
         self.hidden_dim = hidden_dim
 
 
-    def _default_hparams(self):
-        default_dict = ParamDict({
-            'prior_input_res': 32,      # input resolution of prior images
-            'encoder_ngf': 8,           # number of feature maps in shallowest level of encoder
-            'n_input_frames': 1,        # number of prior input frames
-        })
-        # add new params to parent params
-        return super()._default_hparams().overwrite(default_dict)
+    # def _default_hparams(self):
+    #     default_dict = ParamDict({
+    #         'prior_input_res': 32,      # input resolution of prior images
+    #         'encoder_ngf': 8,           # number of feature maps in shallowest level of encoder
+    #         'n_input_frames': 1,        # number of prior input frames
+    #     })
+    #     # add new params to parent params
+    #     return super()._default_hparams().overwrite(default_dict)
 
     def _updated_encoder_params(self):
         params = copy.deepcopy(self._hp)
@@ -383,26 +383,26 @@ class PointNetSkillPriorMdl(SkillPriorMdl):
     #     inf_input = torch.cat((inputs.actions, enc_cond[:, None].repeat(1, inputs.actions.shape[1], 1)), dim=-1)
     #     return MultivariateGaussian(self.q(inf_input)[:, -1])
 
-    def _learned_prior_input(self, inputs):
-        return inputs.images[:, :self._hp.n_input_frames]\
-            .reshape(inputs.images.shape[0], -1, self.resolution, self.resolution)
-
-    def _regression_targets(self, inputs):
-        return inputs.actions[:, (self._hp.n_input_frames-1):]
-
-    def unflatten_obs(self, raw_obs):
-        """Utility to unflatten [obs, prior_obs] concatenated observation (for RL usage)."""
-        assert len(raw_obs.shape) == 2 and raw_obs.shape[1] == self.state_dim \
-               + self._hp.prior_input_res**2 * 3 * self._hp.n_input_frames
-        return AttrDict(
-            obs=raw_obs[:, :self.state_dim],
-            prior_obs=raw_obs[:, self.state_dim:].reshape(raw_obs.shape[0], 3*self._hp.n_input_frames,
-                                                          self._hp.prior_input_res, self._hp.prior_input_res)
-        )
-
-    @property
-    def prior_input_size(self):
-        return self._hp.nz_mid
+    # def _learned_prior_input(self, inputs):
+    #     return inputs.images[:, :self._hp.n_input_frames]\
+    #         .reshape(inputs.images.shape[0], -1, self.resolution, self.resolution)
+    #
+    # def _regression_targets(self, inputs):
+    #     return inputs.actions[:, (self._hp.n_input_frames-1):]
+    #
+    # def unflatten_obs(self, raw_obs):
+    #     """Utility to unflatten [obs, prior_obs] concatenated observation (for RL usage)."""
+    #     assert len(raw_obs.shape) == 2 and raw_obs.shape[1] == self.state_dim \
+    #            + self._hp.prior_input_res**2 * 3 * self._hp.n_input_frames
+    #     return AttrDict(
+    #         obs=raw_obs[:, :self.state_dim],
+    #         prior_obs=raw_obs[:, self.state_dim:].reshape(raw_obs.shape[0], 3*self._hp.n_input_frames,
+    #                                                       self._hp.prior_input_res, self._hp.prior_input_res)
+    #     )
+    #
+    # @property
+    # def prior_input_size(self):
+    #     return self._hp.nz_mid
 
     # @property
     # def resolution(self):
