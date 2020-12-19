@@ -8,5 +8,6 @@ from rlkit.samplers.data_collector.path_collector import (
     ParallelGoalConditionedPathCollector,
     MdpPathCollector,
     MultiAgentGoalConditionedPathCollector,
+    HRLGoalConditionedPathCollector,
 )
 from rlkit.samplers.data_collector.step_collector import GoalConditionedStepCollector

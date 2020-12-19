@@ -12,10 +12,11 @@ from rlkit.data_management.obs_dict_replay_buffer import ObsDictRelabelingBuffer
 from rlkit.samplers.data_collector import (
     GoalConditionedPathCollector,
     MdpPathCollector,
+    HRLGoalConditionedPathCollector,
 )
 from rlkit.torch.her.her import HERTrainer
 from rlkit.torch.sac.policies import MakeDeterministic
-from rlkit.torch.sac.sac import SACTrainer
+from rlkit.torch.sac.sac import SACSkillPriorTrainer
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 
 
@@ -28,8 +29,17 @@ from nmp.model.pointnet import PointNet
 from rlkit.policies.base import ExplorationPolicy
 from rlkit.torch.core import eval_np
 
+from spirl.modules.variational_inference import ProbabilisticModel, Gaussian, MultivariateGaussian, get_fixed_prior, \
+                                                mc_kl_divergence
 
 
+class SkillPriorInference(PointNet):
+    def __init__(self, model):
+        self.model = model
+
+    def forward(self, obs):
+        z = self.model(obs)
+        return MultivariateGaussian(z)
 
 class SkillPriorAgent(PointNet, ExplorationPolicy):
     def __init__(
@@ -45,11 +55,11 @@ class SkillPriorAgent(PointNet, ExplorationPolicy):
         self.policy = policy
 
     def get_action(self, obs_np, deterministic=False):
-        actions = self.get_actions(obs_np[None], deterministic=deterministic)
-        return actions[0, :], {}
+        actions = self.get_actions(obs_np, deterministic=deterministic)
+        return actions, {}
 
     def get_actions(self, obs_np, deterministic=False):
-        return eval_np(self, obs_np, deterministic=deterministic)[0]
+        return eval_np(self, obs_np, deterministic=deterministic)
 
     def forward(
         self, obs, reparameterize=True, deterministic=False, return_log_prob=False,
@@ -61,64 +71,68 @@ class SkillPriorAgent(PointNet, ExplorationPolicy):
         """
         # h = super().forward(obs, return_features=True)
         z = self.policy(obs)
+        mean = z.mu
 
-
-
-
-        # sample latent variable
-        z_sample = z.sample()
-
+        if not deterministic:
+            log_std = z.log_sigma
+            log_prob = z.log_prob
+            # sample latent variable
+            z_sample = z.sample()
+        else:
+            log_std = None
+            log_prob = None
+            z_sample = z
         # decode
         actions = self.decode(z_sample,
                                 cond_inputs=self._learned_prior_input(inputs),
                                 steps=self._hp.n_rollout_steps)
 
+        return (actions, z_sample, mean, log_std, log_prob)
 
-
-        mean = self.last_fc(h)
-        if self.std is None:
-            log_std = self.last_fc_log_std(h)
-            log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
-            std = torch.exp(log_std)
-        else:
-            std = self.std
-            log_std = self.log_std
-
-        log_prob = None
-        entropy = None
-        mean_action_log_prob = None
-        pre_tanh_value = None
-        if deterministic:
-            action = torch.tanh(mean)
-        else:
-            tanh_normal = TanhNormal(mean, std)
-            if return_log_prob:
-                if reparameterize is True:
-                    action, pre_tanh_value = tanh_normal.rsample(
-                        return_pretanh_value=True
-                    )
-                else:
-                    action, pre_tanh_value = tanh_normal.sample(
-                        return_pretanh_value=True
-                    )
-                log_prob = tanh_normal.log_prob(action, pre_tanh_value=pre_tanh_value)
-                log_prob = log_prob.sum(dim=1, keepdim=True)
-            else:
-                if reparameterize is True:
-                    action = tanh_normal.rsample()
-                else:
-                    action = tanh_normal.sample()
-
-        return (
-            action,
-            mean,
-            log_std,
-            log_prob,
-            entropy,
-            std,
-            mean_action_log_prob,
-            pre_tanh_value,
-        )
+        # mean = self.last_fc(h)
+        # if self.std is None:
+        #     log_std = self.last_fc_log_std(h)
+        #     log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
+        #     std = torch.exp(log_std)
+        # else:
+        #     std = self.std
+        #     log_std = self.log_std
+        #
+        # log_prob = None
+        # entropy = None
+        # mean_action_log_prob = None
+        # pre_tanh_value = None
+        # if deterministic:
+        #     action = torch.tanh(mean)
+        # else:
+        #     tanh_normal = TanhNormal(mean, std)
+        #     if return_log_prob:
+        #         if reparameterize is True:
+        #             action, pre_tanh_value = tanh_normal.rsample(
+        #                 return_pretanh_value=True
+        #             )
+        #         else:
+        #             action, pre_tanh_value = tanh_normal.sample(
+        #                 return_pretanh_value=True
+        #             )
+        #         log_prob = tanh_normal.log_prob(action, pre_tanh_value=pre_tanh_value)
+        #         log_prob = log_prob.sum(dim=1, keepdim=True)
+        #     else:
+        #         if reparameterize is True:
+        #             action = tanh_normal.rsample()
+        #         else:
+        #             action = tanh_normal.sample()
+        #
+        # return (
+        #     action,
+        #     mean,
+        #     log_std,
+        #     log_prob,
+        #     entropy,
+        #     std,
+        #     mean_action_log_prob,
+        #     pre_tanh_value,
+        # )
 
     def _build_decoder_initializer(self, size):
         if self._hp.cond_decode:
@@ -239,6 +253,8 @@ def get_networks(variant, expl_env, device, batch_size):
                           ),
     )
 
+    prior = SkillPriorInference(prior)
+
     policy = nn.Sequential(
         # ResizeSpatial(self._hp.prior_input_res),
         policy_encoder,
@@ -252,6 +268,7 @@ def get_networks(variant, expl_env, device, batch_size):
                           final_activation=None,
                   ),
     )
+    policy = SkillPriorInference(policy)
 
     decoder = RecurrentPredictor(nz_mid_lstm=variant["decoder_kwargs"]["nz_mid_lstm"],
                                  n_lstm_layers=variant["decoder_kwargs"]["n_lstm_layers"],
@@ -280,14 +297,14 @@ def get_path_collector(variant, expl_env, eval_env, policy, eval_policy):
         expl_path_collector = MdpPathCollector(expl_env, policy)
         eval_path_collector = MdpPathCollector(eval_env, eval_policy)
     elif mode == "her":
-        expl_path_collector = GoalConditionedPathCollector(
+        expl_path_collector = HRLGoalConditionedPathCollector(
             expl_env,
             policy,
             observation_key=variant["her"]["observation_key"],
             desired_goal_key=variant["her"]["desired_goal_key"],
             representation_goal_key=variant["her"]["representation_goal_key"],
         )
-        eval_path_collector = GoalConditionedPathCollector(
+        eval_path_collector = HRLGoalConditionedPathCollector(
             eval_env,
             eval_policy,
             observation_key=variant["her"]["observation_key"],
@@ -319,8 +336,10 @@ def sac_skill_prior(variant):
     qf1, qf2, target_qf1, target_qf2, policy, shared_base, prior, decoder = get_networks(
         variant, expl_env, device=ptu.device, batch_size=variant["algorithm_kwargs"]["batch_size"],
     )
-    expl_policy = policy
-    eval_policy = MakeDeterministic(policy)
+    skill_prior_policy = SkillPriorAgent(policy=policy, decoder=decoder)
+
+    expl_policy = skill_prior_policy
+    eval_policy = MakeDeterministic(skill_prior_policy)
 
     expl_path_collector, eval_path_collector = get_path_collector(
         variant, expl_env, eval_env, expl_policy, eval_policy
@@ -329,11 +348,12 @@ def sac_skill_prior(variant):
     mode = variant["mode"]
     trainer = SACSkillPriorTrainer(
         env=eval_env,
-        policy=policy,
+        policy=skill_prior_policy,
         qf1=qf1,
         qf2=qf2,
         target_qf1=target_qf1,
         target_qf2=target_qf2,
+        prior=prior,
         **variant["trainer_kwargs"],
     )
     if mode == "her":

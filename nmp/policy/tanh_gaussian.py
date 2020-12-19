@@ -169,3 +169,4 @@ class TanhGaussianCNNPolicy(CNN, ExplorationPolicy):
             mean_action_log_prob,
             pre_tanh_value,
         )
+

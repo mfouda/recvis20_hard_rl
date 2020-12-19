@@ -26,7 +26,7 @@ def archi_to_network(archi_name, function_type):
     return ARCHI[archi_name][function_type]
 
 
-def get_policy_network(archi, kwargs, env, policy_type):
+def get_policy_network(archi, kwargs, env, policy_type, output_size=None):
     action_dim = env.action_space.low.size
     obs_dim = env.observation_space.spaces["observation"].low.size
     goal_dim = env.observation_space.spaces["representation_goal"].low.size
@@ -35,6 +35,8 @@ def get_policy_network(archi, kwargs, env, policy_type):
         kwargs["action_dim"] = action_dim
     else:
         kwargs["output_size"] = action_dim
+    if output_size:
+        kwargs["output_size"] = output_size
 
     if archi != "kinnet":
         kwargs["hidden_sizes"] = [kwargs.pop("hidden_dim")] * kwargs.pop("n_layers")
@@ -83,7 +85,10 @@ def get_q_network(archi, kwargs, env, classification=False):
     obs_dim = env.observation_space.spaces["observation"].low.size
     goal_dim = env.observation_space.spaces["representation_goal"].low.size
     kwargs["output_size"] = 1
-    q_action_dim = action_dim
+    if kwargs["action_dimension"]:
+        q_action_dim = kwargs["action_dimension"]
+    else:
+        q_action_dim = action_dim
 
     if archi != "kinnet":
         kwargs["hidden_sizes"] = [kwargs.pop("hidden_dim")] * kwargs.pop("n_layers")

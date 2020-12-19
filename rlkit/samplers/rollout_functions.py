@@ -389,3 +389,99 @@ def rollout(
         agent_infos=agent_infos,
         env_infos=env_infos,
     )
+
+def hrl_multitask_rollout(
+    env,
+    agent,
+    max_path_length=np.inf,
+    render=False,
+    render_kwargs=None,
+    observation_key=None,
+    desired_goal_key=None,
+    representation_goal_key=None,
+    get_action_kwargs=None,
+    return_dict_obs=False,
+    reset_kwargs=None,
+    skill_length=1,
+):
+    if render_kwargs is None:
+        render_kwargs = {}
+    if get_action_kwargs is None:
+        get_action_kwargs = {}
+    dict_obs = []
+    dict_next_obs = []
+    observations = []
+    actions = []
+    rewards = []
+    terminals = []
+    agent_infos = []
+    env_infos = {}
+    next_observations = []
+    path_length = 0
+    if reset_kwargs:
+        o = env.reset(**reset_kwargs)
+    else:
+        o = env.reset()
+    agent.reset()
+    if render:
+        env.render(**render_kwargs)
+    desired_goal = o[desired_goal_key]
+    while path_length < max_path_length:
+        dict_obs.append(o)
+        if observation_key:
+            s = o[observation_key]
+        g = o[representation_goal_key]
+        new_obs = np.hstack((s, g))
+        a_z, agent_info = agent.get_action(new_obs, **get_action_kwargs)
+        a = a_z[0]
+        z = a_z[1]
+        i = 0
+        reward=0
+        while i < skill_length:
+            next_o, r, d, env_info = env.step(a[i])
+            reward+=r
+            if render:
+                env.render(**render_kwargs)
+            i+=1
+            if d:
+                break
+        r = reward
+        observations.append(o)
+        rewards.append(r)
+        terminals.append(d)
+        actions.append(z)
+        next_observations.append(next_o)
+        dict_next_obs.append(next_o)
+        agent_infos.append(agent_info)
+        if not env_infos:
+            for k, v in env_info.items():
+                env_infos[k] = [v]
+        else:
+            for k, v in env_info.items():
+                env_infos[k].append(v)
+        path_length += 1
+        if d:
+            break
+        o = next_o
+    actions = np.array(actions)
+    if len(actions.shape) == 1:
+        actions = np.expand_dims(actions, 1)
+    observations = np.array(observations)
+    next_observations = np.array(next_observations)
+    if return_dict_obs:
+        observations = dict_obs
+        next_observations = dict_next_obs
+    for k, v in env_infos.items():
+        env_infos[k] = np.array(v)
+    return dict(
+        observations=observations,
+        actions=actions,
+        # rewards=np.array(rewards).reshape(-1, 1),
+        rewards=np.array(rewards),
+        next_observations=next_observations,
+        terminals=np.array(terminals).reshape(-1, 1),
+        agent_infos=agent_infos,
+        env_infos=env_infos,
+        desired_goals=np.repeat(desired_goal[None], path_length, 0),
+        full_observations=dict_obs,
+    )
