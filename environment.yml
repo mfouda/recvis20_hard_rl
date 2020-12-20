@@ -20,5 +20,6 @@ dependencies:
     - gym==0.17.3
     - tensorboard==2.3.0
     - networkx==2.5
+    - funcsigs
     - git+https://github.com/rstrudel/nmprepr.git
 #    - git+https://github.com/rstrudel/rlkit.git@nmprepr

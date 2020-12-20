@@ -41,12 +41,12 @@ from nmp import settings
 @click.option("-cur-range", "--cur-range", default=None, type=int, help='150 | 200 ...')
 @click.option("-max-grid-size", "--max-grid-size", default=None, type=int, help='5| 7 ...')
 ### skill prior
-@click.option("-encoder-output-size", "--encoder-output-size", default=64, type=int, help='64')
+@click.option("-encoder-output-size", "--encoder-output-size", default=None, type=int, help='64')
 @click.option("-input-dim", "--input-dim", default=32, type=int, help='5| 7 ...')
-@click.option("-n-layers", "--n-layers", default=3, type=int, help='5| 7 ...')
+@click.option("-num-layers-policy", "--num-layers-policy", default=3, type=int, help='5| 7 ...')
 @click.option("-nz_mid", "--nz_mid", default=64, type=int, help='5| 7 ...')
 @click.option("-normalization", "--normalization", default="none", type=str, help='none')
-@click.option("-nz-vae", "--nz-vae", default=10, type=int, help='none')
+@click.option("-nz-vae", "--nz-vae", default=None, type=int, help=10)
 ## lstm
 @click.option("-nz-mid-lstm", "--nz-mid-lstm", default=128, type=int, help='none')
 @click.option("-n-lstm-layers", "--n-lstm-layers", default=1, type=int, help='none')
@@ -92,6 +92,7 @@ def main(
     input_dim,
     normalization,
     skill_prior,
+    num_layers_policy,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -148,10 +149,11 @@ def main(
         ),
         qf_kwargs=dict(hidden_dim=hidden_dim, n_layers=n_layers, action_dimension=nz_vae),
         policy_kwargs=dict(hidden_dim=hidden_dim,
+                           n_layers=n_layers,
                            # mlp_output_size=mlp_output_size,
                            encoder_output_size=encoder_output_size,
                            input_dim=input_dim,  # dimensionality of the observation input
-                           n_layers=n_layers,  # number of policy network layers
+                           n_layers_policy=num_layers_policy,  # number of policy network layers
                            nz_mid=nz_mid,  # size of the intermediate network layers
                            normalization=normalization,  # normalization used in policy network ['none', 'batch']
                            nz_vae=nz_vae,
