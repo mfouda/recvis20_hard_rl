@@ -37,7 +37,6 @@ def get_policy_network(archi, kwargs, env, policy_type, output_size=None):
         kwargs["output_size"] = action_dim
     if output_size:
         kwargs["output_size"] = output_size
-
     if archi != "kinnet":
         kwargs["hidden_sizes"] = [kwargs.pop("hidden_dim")] * kwargs.pop("n_layers")
 
@@ -87,6 +86,7 @@ def get_q_network(archi, kwargs, env, classification=False):
     kwargs["output_size"] = 1
     if kwargs["action_dimension"]:
         q_action_dim = kwargs["action_dimension"]
+        del kwargs["action_dimension"]
     else:
         q_action_dim = action_dim
 

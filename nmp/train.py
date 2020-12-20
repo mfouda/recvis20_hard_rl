@@ -5,6 +5,7 @@ import rlkit.torch.pytorch_util as ptu
 from rlkit.launchers.launcher_util import set_seed, setup_logger
 
 from nmp.launcher.sac import sac
+from nmp.launcher.sac_skill_prior import sac_skill_prior
 from nmp import settings
 
 
@@ -40,7 +41,7 @@ from nmp import settings
 @click.option("-cur-range", "--cur-range", default=None, type=int, help='150 | 200 ...')
 @click.option("-max-grid-size", "--max-grid-size", default=None, type=int, help='5| 7 ...')
 ### skill prior
-@click.option("-encoder-output-size", "--encoder-output-size", default=None, type=int, help='5| 7 ...')
+@click.option("-encoder-output-size", "--encoder-output-size", default=64, type=int, help='64')
 @click.option("-input-dim", "--input-dim", default=32, type=int, help='5| 7 ...')
 @click.option("-n-layers", "--n-layers", default=3, type=int, help='5| 7 ...')
 @click.option("-nz_mid", "--nz_mid", default=64, type=int, help='5| 7 ...')
@@ -50,6 +51,8 @@ from nmp import settings
 @click.option("-nz-mid-lstm", "--nz-mid-lstm", default=128, type=int, help='none')
 @click.option("-n-lstm-layers", "--n-lstm-layers", default=1, type=int, help='none')
 @click.option("-action-dim", "--action-dim", default=1, type=int, help='none')
+@click.option("-n-rollout-steps", "--n-rollout-steps", default=10, type=int, help='none')
+@click.option("-skill-prior", "--skill-prior", default=False, type=bool, help='none')
 
 
 
@@ -79,11 +82,16 @@ def main(
     cur_range,
     max_grid_size,
     encoder_output_size,
-    mlp_output_size,
+    # mlp_output_size,
     nz_mid_lstm,
     n_lstm_layers,
     action_dim,
     nz_vae,
+    n_rollout_steps,
+    nz_mid,
+    input_dim,
+    normalization,
+    skill_prior,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -140,18 +148,19 @@ def main(
         ),
         qf_kwargs=dict(hidden_dim=hidden_dim, n_layers=n_layers, action_dimension=nz_vae),
         policy_kwargs=dict(hidden_dim=hidden_dim,
-                           n_layers=n_layers,
-                           mlp_output_size=mlp_output_size,
+                           # mlp_output_size=mlp_output_size,
                            encoder_output_size=encoder_output_size,
-                           input_dim=32,  # dimensionality of the observation input
-                           n_layers=3,  # number of policy network layers
-                           nz_mid=64,  # size of the intermediate network layers
-                           normalization='none',  # normalization used in policy network ['none', 'batch']
+                           input_dim=input_dim,  # dimensionality of the observation input
+                           n_layers=n_layers,  # number of policy network layers
+                           nz_mid=nz_mid,  # size of the intermediate network layers
+                           normalization=normalization,  # normalization used in policy network ['none', 'batch']
+                           nz_vae=nz_vae,
      ),
         log_dir=exp_dir,
         decoder_kwargs=dict(nz_mid_lstm=nz_mid_lstm,
                             n_lstm_layers=n_lstm_layers,
-                            action_dim=action_dim)
+                            action_dim=action_dim,
+                            n_rollout_steps=n_rollout_steps)
     )
     if mode == "her":
         variant["replay_buffer_kwargs"].update(
@@ -173,7 +182,11 @@ def main(
     setup_logger(**setup_logger_kwargs)
     ptu.set_gpu_mode(not cpu, distributed_mode=False)
     print(f"Start training...")
-    sac(variant)
+    if skill_prior:
+        print("skill prior training ...")
+        sac_skill_prior(variant)
+    else:
+        sac(variant)
 
 
 if __name__ == "__main__":

@@ -324,7 +324,7 @@ class SACSkillPriorTrainer(TorchTrainer):
         _, prior_action, prior_mean, prior_log_std, prior_log_pi, *_  = self.prior(obs)
         kl_div = kl_divergence(policy_log_std, policy_mean, prior_log_std, prior_mean)
         if self.use_automatic_entropy_tuning:
-            alpha_loss = -(
+            alpha_loss = (
                     self.alpha * (self.target_divergence - kl_div).detach()
             ).mean()
             self.alpha_optimizer.zero_grad()

@@ -31,28 +31,41 @@ from rlkit.torch.core import eval_np
 
 from spirl.modules.variational_inference import ProbabilisticModel, Gaussian, MultivariateGaussian, get_fixed_prior, \
                                                 mc_kl_divergence
+from spirl.utils.general_utils import AttrDict
+from spirl.utils.pytorch_utils import map2np, ten2ar, RemoveSpatial, ResizeSpatial, map2torch, find_tensor
+import torch.nn as nn
 
 
-class SkillPriorInference(PointNet):
+class SkillPriorInference(nn.Module):
     def __init__(self, model):
+        super().__init__()
         self.model = model
 
     def forward(self, obs):
         z = self.model(obs)
         return MultivariateGaussian(z)
 
-class SkillPriorAgent(PointNet, ExplorationPolicy):
+class SkillPriorAgent(nn.Module, ExplorationPolicy):
     def __init__(
         self,
         policy,
         decoder,
+        device,
+        variant,
     ):
+        super().__init__()
+        self.device = device
+        self.variant = variant
+
+
         self.decoder = decoder
 
-        self.decoder_input_initalizer = self._build_decoder_initializer(size=self._hp.action_dim)
+        self.decoder_input_initalizer = self._build_decoder_initializer(size=self.variant["decoder_kwargs"]["action_dim"])
         self.decoder_hidden_initalizer = self._build_decoder_initializer(size=self.decoder.cell.get_state_size())
 
         self.policy = policy
+
+
 
     def get_action(self, obs_np, deterministic=False):
         actions = self.get_actions(obs_np, deterministic=deterministic)
@@ -84,71 +97,28 @@ class SkillPriorAgent(PointNet, ExplorationPolicy):
             z_sample = z
         # decode
         actions = self.decode(z_sample,
-                                cond_inputs=self._learned_prior_input(inputs),
-                                steps=self._hp.n_rollout_steps)
+                                cond_inputs=None, #self._learned_prior_input(inputs),
+                                steps=self.variant["decoder_kwargs"]["n_rollout_steps"])
 
         return (actions, z_sample, mean, log_std, log_prob)
 
-        # mean = self.last_fc(h)
-        # if self.std is None:
-        #     log_std = self.last_fc_log_std(h)
-        #     log_std = torch.clamp(log_std, LOG_SIG_MIN, LOG_SIG_MAX)
-        #     std = torch.exp(log_std)
-        # else:
-        #     std = self.std
-        #     log_std = self.log_std
-        #
-        # log_prob = None
-        # entropy = None
-        # mean_action_log_prob = None
-        # pre_tanh_value = None
-        # if deterministic:
-        #     action = torch.tanh(mean)
-        # else:
-        #     tanh_normal = TanhNormal(mean, std)
-        #     if return_log_prob:
-        #         if reparameterize is True:
-        #             action, pre_tanh_value = tanh_normal.rsample(
-        #                 return_pretanh_value=True
-        #             )
-        #         else:
-        #             action, pre_tanh_value = tanh_normal.sample(
-        #                 return_pretanh_value=True
-        #             )
-        #         log_prob = tanh_normal.log_prob(action, pre_tanh_value=pre_tanh_value)
-        #         log_prob = log_prob.sum(dim=1, keepdim=True)
-        #     else:
-        #         if reparameterize is True:
-        #             action = tanh_normal.rsample()
-        #         else:
-        #             action = tanh_normal.sample()
-        #
-        # return (
-        #     action,
-        #     mean,
-        #     log_std,
-        #     log_prob,
-        #     entropy,
-        #     std,
-        #     mean_action_log_prob,
-        #     pre_tanh_value,
-        # )
+
 
     def _build_decoder_initializer(self, size):
-        if self._hp.cond_decode:
-            # roughly match parameter count of the learned prior
-            return Predictor(self._hp, input_size=self.prior_input_size, output_size=size,
-                             num_layers=self._hp.num_prior_net_layers, mid_size=self._hp.nz_mid_prior)
-        else:
-            class FixedTrainableInitializer(nn.Module):
-                def __init__(self, hp):
-                    super().__init__()
-                    self._hp = hp
-                    self.val = torch.zeros((1, size), requires_grad=True, device=self._hp.device)
+        # if self._hp.cond_decode:
+        #     # roughly match parameter count of the learned prior
+        #     return Predictor(self._hp, input_size=self.prior_input_size, output_size=size,
+        #                      num_layers=self._hp.num_prior_net_layers, mid_size=self._hp.nz_mid_prior)
+        # else:
+        class FixedTrainableInitializer(nn.Module):
+            def __init__(self, device):
+                super().__init__()
+                self.device = device
+                self.val = torch.zeros((1, size), requires_grad=True, device=self.device)
 
-                def forward(self, state):
-                    return self.val.repeat(find_tensor(state).shape[0], 1)
-            return FixedTrainableInitializer(self._hp)
+            def forward(self, state):
+                return self.val.repeat(find_tensor(state).shape[0], 1)
+        return FixedTrainableInitializer(self.device)
 
     def decode(self, z, cond_inputs, steps):
         """Runs forward pass of decoder given skill embedding.
@@ -156,12 +126,13 @@ class SkillPriorAgent(PointNet, ExplorationPolicy):
         :arg cond_inputs: info that decoder is conditioned on
         :arg steps: number of steps decoder is rolled out
         """
-        lstm_init_input = self.decoder_input_initalizer(cond_inputs)
-        lstm_init_hidden = self.decoder_hidden_initalizer(cond_inputs)
-        return self.decoder(lstm_initial_inputs=AttrDict(x_t=lstm_init_input),
+        ## these to pass also the state to the decoder
+        # lstm_init_input = self.decoder_input_initalizer(cond_inputs)
+        # lstm_init_hidden = self.decoder_hidden_initalizer(cond_inputs)
+        return self.decoder(lstm_initial_inputs=None, #AttrDict(x_t=lstm_init_input),
                             lstm_static_inputs=AttrDict(z=z),
                             steps=steps,
-                            lstm_hidden_init=lstm_init_hidden).pred
+                            ).pred #lstm_hidden_init=lstm_init_hidden
 
 
 def get_replay_buffer(variant, expl_env):
@@ -187,9 +158,8 @@ def get_networks(variant, expl_env, device, batch_size):
     Define Q networks and policy network
     """
     qf_kwargs = variant["qf_kwargs"]
-    policy_kwargs = variant["policy_kwargs"]
+    policy_kwargs = variant["policy_kwargs"].copy()
     shared_base = None
-
     qf_class, qf_kwargs = utils.get_q_network(variant["archi"], qf_kwargs, expl_env)
 
 
@@ -223,18 +193,20 @@ def get_networks(variant, expl_env, device, batch_size):
     # # kwargs["hidden_activation"] = torch.sin
     #
     #
-    #
-    policy_class, policy_kwargs = utils.get_policy_network(
+
+    policy_class, policy_encoder_kwargs = utils.get_policy_network(
         variant["archi"], policy_kwargs, expl_env, "vanilla",
         output_size=variant["policy_kwargs"]["encoder_output_size"],
     ) #"tanhgaussian"
+
 
     qf1 = qf_class(**qf_kwargs)
     qf2 = qf_class(**qf_kwargs)
     target_qf1 = qf_class(**qf_kwargs)
     target_qf2 = qf_class(**qf_kwargs)
 
-    policy_encoder = policy_class(**policy_kwargs)
+    # del policy_kwargs["encoder_output_size"]
+    policy_encoder = policy_class(**policy_encoder_kwargs)
 
     ### skill prior
     builder = LayerBuilderParams(use_convs=False, normalization=variant["policy_kwargs"]["normalization"])
@@ -243,30 +215,29 @@ def get_networks(variant, expl_env, device, batch_size):
         # ResizeSpatial(self._hp.prior_input_res),
         policy_encoder,
         RemoveSpatial(),
-        BaseProcessingNet(input_size=variant["policy_kwargs"]["encoder_output_size"],
-                          mid_size=variant["policy_kwargs"]["mid_size"],
-                          output_size=variant["policy_kwargs"]["nz_vae"] * 2,
-                          num_layers=variant["policy_kwargs"]["num_layers"],
+        BaseProcessingNet(in_dim=variant["policy_kwargs"]["encoder_output_size"],
+                          mid_dim=variant["policy_kwargs"]["nz_mid"],
+                          out_dim=variant["policy_kwargs"]["nz_vae"] * 2,
+                          num_layers=variant["policy_kwargs"]["n_layers"],
                           builder=builder,
                           detached=False,
                           final_activation=None,
                           ),
     )
-
     prior = SkillPriorInference(prior)
 
     policy = nn.Sequential(
         # ResizeSpatial(self._hp.prior_input_res),
         policy_encoder,
         RemoveSpatial(),
-        BaseProcessingNet(input_size=variant["policy_kwargs"]["encoder_output_size"],
-                          mid_size=variant["policy_kwargs"]["mid_size"],
-                          output_size=variant["policy_kwargs"]["nz_vae"] * 2,
-                          num_layers=variant["policy_kwargs"]["num_layers"],
+        BaseProcessingNet(in_dim=variant["policy_kwargs"]["encoder_output_size"],
+                          mid_dim=variant["policy_kwargs"]["nz_mid"],
+                          out_dim=variant["policy_kwargs"]["nz_vae"] * 2,
+                          num_layers=variant["policy_kwargs"]["n_layers"],
                           builder=builder,
                           detached=False,
                           final_activation=None,
-                  ),
+                          ),
     )
     policy = SkillPriorInference(policy)
 
@@ -283,7 +254,7 @@ def get_networks(variant, expl_env, device, batch_size):
 
     nets = [qf1, qf2, target_qf1, target_qf2, policy, shared_base, prior, decoder]
     print(f"Q function num parameters: {qf1.num_params()}")
-    print(f"Policy num parameters: {policy.num_params()}")
+    print(f"policy_encoder num parameters: {policy_encoder.num_params()}")
 
     return nets
 
@@ -336,7 +307,7 @@ def sac_skill_prior(variant):
     qf1, qf2, target_qf1, target_qf2, policy, shared_base, prior, decoder = get_networks(
         variant, expl_env, device=ptu.device, batch_size=variant["algorithm_kwargs"]["batch_size"],
     )
-    skill_prior_policy = SkillPriorAgent(policy=policy, decoder=decoder)
+    skill_prior_policy = SkillPriorAgent(policy=policy, decoder=decoder, device=ptu.device, variant=variant)
 
     expl_policy = skill_prior_policy
     eval_policy = MakeDeterministic(skill_prior_policy)

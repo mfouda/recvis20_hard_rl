@@ -27,6 +27,7 @@ class PointNet(nn.Module):
         output_activation=identity,
         init_w=3e-3,
         hidden_activation=F.elu,
+        **kwargs,
     ):
         super().__init__()
         self.output_size = output_size
