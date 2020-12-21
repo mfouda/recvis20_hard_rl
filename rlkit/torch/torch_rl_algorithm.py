@@ -26,6 +26,7 @@ from rlkit.data_management.env_replay_buffer import EnvReplayBuffer
 from rlkit.data_management.obs_dict_replay_buffer import ObsDictRelabelingBuffer
 
 import gym
+import numpy as np
 
 def get_path_collector(variant, expl_env, eval_env, policy, eval_policy):
     """
@@ -108,6 +109,8 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
             self.replay_buffer.add_paths(init_expl_paths)
             self.expl_data_collector.end_epoch(-1)
         self.num_obstacles = 0
+        self.upper_x = 0.2
+        self.upper_y = 0.2
         grid_size = 1 #start with grid size of 2
         for epoch in gt.timed_for(
             range(self._start_epoch, self.num_epochs), save_itrs=True,
@@ -131,6 +134,17 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
                     self.variant, expl_env, eval_env, expl_policy, eval_policy
                 )
                 reset_kwargs = {}
+            elif self.option is not None and self.option == "cur-v2":
+                if epoch % self.cur_range == 0:
+                    if self.upper_x <= 0.8:
+                        self.upper_x+=0.2
+                        self.upper_y+= 0.2
+                        bounds = np.array(
+                            [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0], [self.upper_x, self.upper_y, 0.0, 0.0, 0.0, 0.0, 1.0]]
+                        )
+                    else:
+                        bounds = None
+                    reset_kwargs = {'bounds': bounds}
             else:
                 reset_kwargs = {}
             self.eval_data_collector.collect_new_paths(

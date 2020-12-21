@@ -43,13 +43,12 @@ class MazeGoal(Base):
         self.fig, self.ax, self.pos = None, None, None
         self.visualize = visualize
 
-    def _reset(self, idx_env=None, start=None, goal=None, bounds=None, filter_simple = True, num_obstacles=None):
+    def _reset(self, idx_env=None, start=None, goal=None, bounds=None, filter_simple=True, num_obstacles=None):
         model_wrapper = self.model_wrapper
         if bounds is not None:
-            freeflyer_bounds_goal = bounds
+            freeflyer_bounds_goal = bounds.copy()
         else:
             freeflyer_bounds_goal = self.freeflyer_bounds
-
         self.robot = self.add_robot("sphere2d", self.freeflyer_bounds)
         self.geoms, self.idx_env = self.get_obstacles_geoms(idx_env)
         k = 0
@@ -78,13 +77,22 @@ class MazeGoal(Base):
 
         if start is not None:
             self.set_state(start)
+        if bounds is not None:
+            freeflyer_bounds_goal[1][0] = min(0.9, self.state.q[0] + freeflyer_bounds_goal[1][0])
+            freeflyer_bounds_goal[1][1] = min(0.9, self.state.q[1] + freeflyer_bounds_goal[1][1])
+
+            freeflyer_bounds_goal[0][0] = min(0.9, self.state.q[0] + freeflyer_bounds_goal[0][0])
+            freeflyer_bounds_goal[0][1] = min(0.9, self.state.q[1] + freeflyer_bounds_goal[0][1])
+
+
         if goal is not None:
             self.set_goal_state(goal, bounds=freeflyer_bounds_goal)
+        else:
+            self.set_goal_state(self.goal_state, bounds=freeflyer_bounds_goal)
 
         if self.fig:
             plt.close()
         self.fig, self.ax, self.pos = None, None, None
-
         return self.observation()
 
     def validate_sample(self, state, goal_state):
@@ -123,7 +131,6 @@ class MazeGoal(Base):
 
     def init_matplotlib(self):
         plt.ion()
-
         fig = plt.figure(figsize=(6, 6))
         ax = fig.add_subplot(111, aspect="equal")
         ax.set_xlim(0.0 - self.thickness, 1.0 + self.thickness)
