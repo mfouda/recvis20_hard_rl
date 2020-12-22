@@ -112,6 +112,8 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
         self.upper_x = 0.2
         self.upper_y = 0.2
         grid_size = 1 #start with grid size of 2
+        self.bounds = None
+        success_rate = 0
         for epoch in gt.timed_for(
             range(self._start_epoch, self.num_epochs), save_itrs=True,
         ):
@@ -135,16 +137,16 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
                 )
                 reset_kwargs = {}
             elif self.option is not None and self.option == "cur-v2":
-                if epoch % self.cur_range == 0:
+                if epoch % self.cur_range == 0 or success_rate > 0.8:
                     if self.upper_x <= 0.8:
                         self.upper_x+=0.2
                         self.upper_y+= 0.2
-                        bounds = np.array(
+                        self.bounds = np.array(
                             [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0], [self.upper_x, self.upper_y, 0.0, 0.0, 0.0, 0.0, 1.0]]
                         )
                     else:
-                        bounds = None
-                    reset_kwargs = {'bounds': bounds}
+                        self.bounds = None
+                    reset_kwargs = {'bounds': self.bounds}
             else:
                 reset_kwargs = {}
             self.eval_data_collector.collect_new_paths(
@@ -161,6 +163,7 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
               print("the grid size is: ", grid_size)
               print("curriculum range: ", self.cur_range)
               print("max grid size: ", self.max_grid_size)
+              print("bounds :", bounds)
               print("#############")
             for _ in range(self.num_train_loops_per_epoch):
                 new_expl_paths = self.expl_data_collector.collect_new_paths(
@@ -183,7 +186,9 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
                     gt.stamp("training", unique=False)
                 self.training_mode(False)
 
-            self._end_epoch(epoch)
+            stats = self.eval_data_collector.get_diagnostics()
+            success_rate = stats["SuccessRate"]
+            self._end_epoch(epoch, self.range)
 
 
 class TorchTrainer(Trainer, metaclass=abc.ABCMeta):

@@ -53,13 +53,14 @@ class BaseRLAlgorithm(object, metaclass=abc.ABCMeta):
         """
         raise NotImplementedError("_train must implemented by inherited class")
 
-    def _end_epoch(self, epoch):
+    def _end_epoch(self, epoch, range):
         snapshot = self._get_snapshot()
         # only save params for the first gpu
         if ptu.dist_rank == 0:
             logger.save_itr_params(epoch, snapshot)
         gt.stamp("saving")
-        self._log_stats(epoch)
+        if epoch % range == 0:
+            self._log_stats(epoch)
 
         self.expl_data_collector.end_epoch(epoch)
         self.eval_data_collector.end_epoch(epoch)

@@ -36,7 +36,7 @@ from nmp import settings
     type=str,
     help="all, last, gap, gap_and_last, none",
 )
-@click.option("-snap-gap", "--snapshot-gap", default=10, type=int)
+@click.option("-snap-gap", "--snapshot-gap", default=20, type=int)
 @click.option("-option", "--option", default=None, type=str, help='cur-v0 | cur-v1')
 @click.option("-cur-range", "--cur-range", default=None, type=int, help='150 | 200 ...')
 @click.option("-max-grid-size", "--max-grid-size", default=None, type=int, help='5| 7 ...')
@@ -46,13 +46,14 @@ from nmp import settings
 @click.option("-num-layers-policy", "--num-layers-policy", default=3, type=int, help='5| 7 ...')
 @click.option("-nz_mid", "--nz_mid", default=64, type=int, help='5| 7 ...')
 @click.option("-normalization", "--normalization", default="none", type=str, help='none')
-@click.option("-nz-vae", "--nz-vae", default=None, type=int, help=10)
+@click.option("-nz-vae", "--nz-vae", default=None, type=int, help='10')
 ## lstm
 @click.option("-nz-mid-lstm", "--nz-mid-lstm", default=128, type=int, help='none')
 @click.option("-n-lstm-layers", "--n-lstm-layers", default=1, type=int, help='none')
-@click.option("-action-dim", "--action-dim", default=1, type=int, help='none')
+@click.option("-action-dim", "--action-dim", default=0, type=int, help='could be useless')
 @click.option("-n-rollout-steps", "--n-rollout-steps", default=10, type=int, help='none')
 @click.option("-skill-prior", "--skill-prior", default=False, type=bool, help='none')
+@click.option("-range-log", "--range-log", default=1, type=int, help='none')
 
 
 
@@ -93,6 +94,7 @@ def main(
     normalization,
     skill_prior,
     num_layers_policy,
+    range_log,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -136,6 +138,7 @@ def main(
             option=option,
             cur_range=cur_range,
             max_grid_size=max_grid_size,
+            range=range_log,
         ),
         trainer_kwargs=dict(
             discount=0.99,
