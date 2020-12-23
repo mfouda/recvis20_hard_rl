@@ -28,7 +28,7 @@ from rlkit.data_management.obs_dict_replay_buffer import ObsDictRelabelingBuffer
 import gym
 import numpy as np
 
-def get_path_collector(variant, expl_env, eval_env, policy, eval_policy):
+def get_path_collector(variant, expl_env, eval_env, policy, eval_policy, grid_size=None):
     """
     Define path collector
     """
@@ -43,6 +43,7 @@ def get_path_collector(variant, expl_env, eval_env, policy, eval_policy):
             observation_key=variant["her"]["observation_key"],
             desired_goal_key=variant["her"]["desired_goal_key"],
             representation_goal_key=variant["her"]["representation_goal_key"],
+            grid_size=grid_size,
         )
         eval_path_collector = GoalConditionedPathCollector(
             eval_env,
@@ -50,6 +51,7 @@ def get_path_collector(variant, expl_env, eval_env, policy, eval_policy):
             observation_key=variant["her"]["observation_key"],
             desired_goal_key=variant["her"]["desired_goal_key"],
             representation_goal_key=variant["her"]["representation_goal_key"],
+            grid_size=grid_size,
         )
     return expl_path_collector, eval_path_collector
 def get_replay_buffer(variant, expl_env):
@@ -133,7 +135,7 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
                 self.replay_buffer = get_replay_buffer(self.variant, expl_env)
 
                 self.expl_data_collector, self.eval_data_collector = get_path_collector(
-                    self.variant, expl_env, eval_env, expl_policy, eval_policy
+                    self.variant, expl_env, eval_env, expl_policy, eval_policy, grid_size
                 )
                 if grid_size < 3:
                     filter_simple = False
@@ -167,7 +169,7 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
               print("the grid size is: ", grid_size)
               print("curriculum range: ", self.cur_range)
               print("max grid size: ", self.max_grid_size)
-              print("bounds :", bounds)
+              print("bounds :", self.bounds)
               print("#############")
             for _ in range(self.num_train_loops_per_epoch):
                 new_expl_paths = self.expl_data_collector.collect_new_paths(

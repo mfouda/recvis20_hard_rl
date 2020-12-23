@@ -100,6 +100,7 @@ class GoalConditionedPathCollector(PathCollector):
         observation_key="observation",
         desired_goal_key="desired_goal",
         representation_goal_key="representation_goal",
+        grid_size=None,
     ):
         if render_kwargs is None:
             render_kwargs = {}
@@ -117,6 +118,7 @@ class GoalConditionedPathCollector(PathCollector):
         self._num_steps_total = 0
         self._num_paths_total = 0
         # self._reset_kwargs = reset_kwargs
+        self.grid_size = grid_size
 
     def collect_new_paths(
         self, max_path_length, num_steps, discard_incomplete_paths, reset_kwargs=None,
@@ -176,6 +178,7 @@ class GoalConditionedPathCollector(PathCollector):
         )
         success = [path["env_infos"]["success"][-1] for path in self._epoch_paths]
         stats["SuccessRate"] = sum(success) / len(success)
+        stats["grid_size"] = self.grid_size
         return stats
 
     def get_snapshot(self):
