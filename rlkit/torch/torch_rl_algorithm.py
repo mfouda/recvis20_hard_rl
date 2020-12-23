@@ -111,7 +111,7 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
         self.num_obstacles = 0
         self.upper_x = 0.2
         self.upper_y = 0.2
-        grid_size = 1 #start with grid size of 2
+        grid_size = 2 #start with grid size of 2
         self.bounds = None
         success_rate = 0
         for epoch in gt.timed_for(
@@ -122,7 +122,7 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
                     self.num_obstacles+=1
                     reset_kwargs = {'num_obstacles': self.num_obstacles}
             elif self.option is not None and self.option == "cur-v1":
-                if epoch % self.cur_range == 0 and grid_size < self.max_grid_size:
+                if success_rate > 0.6  and grid_size < self.max_grid_size:
                     grid_size+=1
                 expl_env = gym.make("Maze-grid-v" + str(grid_size))
                 eval_env = gym.make("Maze-grid-v" + str(grid_size))
@@ -135,7 +135,11 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
                 self.expl_data_collector, self.eval_data_collector = get_path_collector(
                     self.variant, expl_env, eval_env, expl_policy, eval_policy
                 )
-                reset_kwargs = {}
+                if grid_size < 3:
+                    filter_simple = False
+                else:
+                    filter_simple = True
+                reset_kwargs = {'filter_simple': filter_simple}
             elif self.option is not None and self.option == "cur-v2":
                 if epoch % self.cur_range == 0 or success_rate > 0.8:
                     if self.upper_x <= 0.8:
