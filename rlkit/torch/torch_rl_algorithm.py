@@ -113,7 +113,7 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
         self.num_obstacles = 0
         self.upper_x = 0.2
         self.upper_y = 0.2
-        grid_size = 2 #start with grid size of 2
+        grid_size = 1 #start with grid size of 2
         self.bounds = None
         success_rate = 0
         for epoch in gt.timed_for(

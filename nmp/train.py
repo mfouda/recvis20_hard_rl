@@ -54,6 +54,7 @@ from nmp import settings
 @click.option("-n-rollout-steps", "--n-rollout-steps", default=10, type=int, help='none')
 @click.option("-skill-prior", "--skill-prior", default=False, type=bool, help='none')
 @click.option("-range-log", "--range-log", default=1, type=int, help='none')
+@click.option("-start-grid-size", "--start-grid-size", default=2, type=int, help='none')
 
 
 
@@ -95,6 +96,7 @@ def main(
     skill_prior,
     num_layers_policy,
     range_log,
+    start_grid_size,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -126,6 +128,7 @@ def main(
         resume=resume,
         mode=mode,
         archi=archi,
+        start_grid_size=start_grid_size,
         replay_buffer_kwargs=dict(max_replay_buffer_size=replay_buffer_size,),
         algorithm_kwargs=dict(
             batch_size=batch_size,

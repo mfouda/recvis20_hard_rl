@@ -68,7 +68,7 @@ def get_networks(variant, expl_env):
     return nets
 
 
-def get_path_collector(variant, expl_env, eval_env, policy, eval_policy):
+def get_path_collector(variant, expl_env, eval_env, policy, eval_policy, grid_size=2):
     """
     Define path collector
     """
@@ -83,6 +83,7 @@ def get_path_collector(variant, expl_env, eval_env, policy, eval_policy):
             observation_key=variant["her"]["observation_key"],
             desired_goal_key=variant["her"]["desired_goal_key"],
             representation_goal_key=variant["her"]["representation_goal_key"],
+            grid_size=grid_size,
         )
         eval_path_collector = GoalConditionedPathCollector(
             eval_env,
@@ -90,6 +91,7 @@ def get_path_collector(variant, expl_env, eval_env, policy, eval_policy):
             observation_key=variant["her"]["observation_key"],
             desired_goal_key=variant["her"]["desired_goal_key"],
             representation_goal_key=variant["her"]["representation_goal_key"],
+            grid_size=grid_size,
         )
     return expl_path_collector, eval_path_collector
 
@@ -118,7 +120,7 @@ def sac(variant):
     eval_policy = MakeDeterministic(policy)
 
     expl_path_collector, eval_path_collector = get_path_collector(
-        variant, expl_env, eval_env, expl_policy, eval_policy
+        variant, expl_env, eval_env, expl_policy, eval_policy, grid_size=variant["start_grid_size"],
     )
 
     mode = variant["mode"]
