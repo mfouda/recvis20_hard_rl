@@ -28,7 +28,7 @@ from rlkit.data_management.obs_dict_replay_buffer import ObsDictRelabelingBuffer
 import gym
 import numpy as np
 
-def get_path_collector(variant, expl_env, eval_env, policy, eval_policy, grid_size=None):
+def get_path_collector(variant, expl_env, eval_env, policy, eval_policy, grid_size=3):
     """
     Define path collector
     """
@@ -124,24 +124,24 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
                     self.num_obstacles+=1
                     reset_kwargs = {'num_obstacles': self.num_obstacles}
             elif self.option is not None and self.option == "cur-v1":
-                if success_rate > 0.6  and grid_size < self.max_grid_size:
+                if (epoch % (3 * self.cur_range) == 0 or success_rate > 0.6) and grid_size < self.max_grid_size:
                     grid_size+=1
-                expl_env = gym.make("Maze-grid-v" + str(grid_size))
-                eval_env = gym.make("Maze-grid-v" + str(grid_size))
-                expl_env.seed(self.variant["seed"])
-                eval_env.set_eval()
-                expl_policy = self.policy
-                eval_policy = MakeDeterministic(self.policy)
-                self.replay_buffer = get_replay_buffer(self.variant, expl_env)
+                    expl_env = gym.make("Maze-grid-v" + str(grid_size))
+                    eval_env = gym.make("Maze-grid-v" + str(grid_size))
+                    expl_env.seed(self.variant["seed"])
+                    eval_env.set_eval()
+                    expl_policy = self.policy
+                    eval_policy = MakeDeterministic(self.policy)
+                    self.replay_buffer = get_replay_buffer(self.variant, expl_env)
 
-                self.expl_data_collector, self.eval_data_collector = get_path_collector(
-                    self.variant, expl_env, eval_env, expl_policy, eval_policy, grid_size
-                )
-                if grid_size < 3:
-                    filter_simple = False
-                else:
-                    filter_simple = True
-                reset_kwargs = {'filter_simple': filter_simple}
+                    self.expl_data_collector, self.eval_data_collector = get_path_collector(
+                        self.variant, expl_env, eval_env, expl_policy, eval_policy, grid_size
+                    )
+                    if grid_size < 3:
+                        filter_simple = False
+                    else:
+                        filter_simple = True
+                    reset_kwargs = {'filter_simple': filter_simple}
             elif self.option is not None and self.option == "cur-v2":
                 if epoch % self.cur_range == 0 or success_rate > 0.8:
                     if self.upper_x <= 0.8:
@@ -153,6 +153,9 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
                     else:
                         self.bounds = None
                     reset_kwargs = {'bounds': self.bounds}
+            elif self.option is not None:
+                print("this curr option is not available")
+                raise
             else:
                 reset_kwargs = {}
             self.eval_data_collector.collect_new_paths(

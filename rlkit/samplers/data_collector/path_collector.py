@@ -100,7 +100,7 @@ class GoalConditionedPathCollector(PathCollector):
         observation_key="observation",
         desired_goal_key="desired_goal",
         representation_goal_key="representation_goal",
-        grid_size=None,
+        grid_size=3,
     ):
         if render_kwargs is None:
             render_kwargs = {}
