@@ -22,6 +22,45 @@ from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 from nmp.launcher import utils
 
 
+def get_model(data, keys):
+    model = None
+    for key in keys:
+        if key in data:
+            model = data[key]
+            break
+    if model is None:
+        raise ValueError(f"model not found in the keys: {data.keys()}")
+    return model
+
+def get_pretrained_networks(exp_path, device):
+    data = torch.load(
+        exp_path,
+        map_location=device,
+    )
+    shared_base = None
+
+    policy_keys = ["trainer/policy"]
+    policy = get_model(data, policy_keys)
+
+    qf1_keys = ["evaluation/qf1", "trainer/qf1"]
+    qf1 = get_model(data, qf1_keys)
+
+    qf2_keys = ["evaluation/qf2", "trainer/qf2"]
+    qf2 = get_model(data, qf2_keys)
+
+    target_qf1_keys = ["evaluation/target_qf1", "trainer/target_qf1"]
+    target_qf1 = get_model(data, target_qf1_keys)
+
+    target_qf2_keys = ["evaluation/target_qf2", "trainer/target_qf2"]
+    target_qf2 = get_model(data, target_qf2_keys)
+
+    nets = [qf1, qf2, target_qf1, target_qf2, policy, shared_base]
+
+    return nets
+
+
+
+
 def get_replay_buffer(variant, expl_env):
     """
     Define replay buffer specific to the mode
@@ -64,6 +103,7 @@ def get_networks(variant, expl_env):
     nets = [qf1, qf2, target_qf1, target_qf2, policy, shared_base]
     print(f"Q function num parameters: {qf1.num_params()}")
     print(f"Policy num parameters: {policy.num_params()}")
+
 
     return nets
 
@@ -113,9 +153,13 @@ def sac(variant):
         )
 
     replay_buffer = get_replay_buffer(variant, expl_env)
-    qf1, qf2, target_qf1, target_qf2, policy, shared_base = get_networks(
-        variant, expl_env
-    )
+    if variant["pretrain_path"] is not None:
+        qf1, qf2, target_qf1, target_qf2, policy, shared_base = get_pretrained_networks(exp_path=variant["pretrain_path"], device=ptu.device)
+        print("we use pretrained models")
+    else:
+        qf1, qf2, target_qf1, target_qf2, policy, shared_base = get_networks(
+            variant, expl_env
+        )
     expl_policy = policy
     eval_policy = MakeDeterministic(policy)
 

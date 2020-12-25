@@ -53,8 +53,12 @@ from nmp import settings
 @click.option("-action-dim", "--action-dim", default=0, type=int, help='could be useless')
 @click.option("-n-rollout-steps", "--n-rollout-steps", default=10, type=int, help='none')
 @click.option("-skill-prior", "--skill-prior", default=False, type=bool, help='none')
+
+
 @click.option("-range-log", "--range-log", default=1, type=int, help='none')
 @click.option("-start-grid-size", "--start-grid-size", default=2, type=int, help='none')
+
+@click.option("-pretrain-path", "--pretrain-path", default=None, type=str, help='none')
 
 
 
@@ -97,6 +101,7 @@ def main(
     num_layers_policy,
     range_log,
     start_grid_size,
+    pretrain_path,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -168,7 +173,8 @@ def main(
         decoder_kwargs=dict(nz_mid_lstm=nz_mid_lstm,
                             n_lstm_layers=n_lstm_layers,
                             action_dim=action_dim,
-                            n_rollout_steps=n_rollout_steps)
+                            n_rollout_steps=n_rollout_steps),
+        pretrain_path=pretrain_path,
     )
     if mode == "her":
         variant["replay_buffer_kwargs"].update(
