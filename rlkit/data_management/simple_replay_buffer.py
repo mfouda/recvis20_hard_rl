@@ -131,9 +131,9 @@ class DemoSimpleReplayBuffer(ReplayBuffer):
             obs.append(np.concatenate((o["observation"], o["representation_goal"])))
         self._observations = np.array(obs)
 
-        self._rewards = demos["rewards"]
-        self._terminals = demos["Done"]
-        self._actions = demos["actions"]
+        self._rewards = np.array(demos["rewards"])
+        self._terminals = np.array(demos["Done"])
+        self._actions = np.array(demos["actions"])
 
         obs = []
         for o in demos["next_observations"]:
@@ -141,6 +141,7 @@ class DemoSimpleReplayBuffer(ReplayBuffer):
         self._next_obs = np.array(obs)
 
         self._size = len(self._rewards)
+        self._agent_infos = np.zeros((self._size, 1))
 
     def add_sample(
         self,

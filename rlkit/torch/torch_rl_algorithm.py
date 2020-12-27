@@ -231,6 +231,33 @@ class TorchTrainer(Trainer, metaclass=abc.ABCMeta):
     def networks(self) -> Iterable[nn.Module]:
         pass
 
+class TorchfDTrainer(Trainer, metaclass=abc.ABCMeta):
+    def __init__(self):
+        self._num_train_steps = 0
+
+    def train(self, np_batch, np_batch_demo):
+        self._num_train_steps += 1
+        torch_batch = np_to_pytorch_batch(np_batch)
+        torch_batch_demo = np_to_pytorch_batch(np_batch_demo)
+
+        self.train_from_torch(torch_batch, torch_batch_demo)
+
+    def eval(self, np_batch):
+        self._num_train_steps += 1
+        torch_batch = np_to_pytorch_batch(np_batch)
+        self.eval_from_torch(torch_batch)
+
+    def get_diagnostics(self):
+        return OrderedDict([("num train calls", self._num_train_steps),])
+
+    @abc.abstractmethod
+    def train_from_torch(self, batch, batch_demo):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def networks(self) -> Iterable[nn.Module]:
+        pass
 
 class TorchfDBatchRLAlgorithm(BatchRLAlgorithm):
     def to(self, device, distributed=False):

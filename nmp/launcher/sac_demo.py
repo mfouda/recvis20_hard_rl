@@ -13,7 +13,7 @@ from rlkit.samplers.data_collector import (
     GoalConditionedPathCollector,
     MdpPathCollector,
 )
-from rlkit.torch.her.her import HERTrainer
+from rlkit.torch.her.her import HERTrainer, HERfDTrainer
 from rlkit.torch.sac.policies import MakeDeterministic
 from rlkit.torch.sac.sac import SACTrainer, SACfDTrainer
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchfDBatchRLAlgorithm
@@ -185,7 +185,7 @@ def sacfd(variant):
         **variant["trainer_kwargs"],
     )
     if mode == "her":
-        trainer = HERTrainer(trainer)
+        trainer = HERfDTrainer(trainer)
     algorithm = TorchfDBatchRLAlgorithm(
         trainer=trainer,
         exploration_env=expl_env,

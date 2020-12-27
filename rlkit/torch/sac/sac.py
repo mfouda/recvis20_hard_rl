@@ -9,6 +9,8 @@ from rlkit.core.eval_util import create_stats_ordered_dict
 from rlkit.torch.torch_rl_algorithm import TorchTrainer
 from torch import nn as nn
 
+from rlkit.torch.core import np_to_pytorch_batch
+
 
 
 
@@ -302,6 +304,12 @@ class SACfDTrainer(TorchTrainer):
         self._need_to_update_eval_statistics = True
         self.bc_loss = nn.MSELoss()
         self.gamma_bc = gamma_bc
+
+    def train(self, np_batch, batch_demo):
+        self._num_train_steps += 1
+        torch_batch = np_to_pytorch_batch(np_batch)
+        torch_batch_demo = np_to_pytorch_batch(batch_demo)
+        self.train_from_torch(torch_batch, torch_batch_demo)
 
     def train_from_torch(self, batch, batch_demo):
         rewards = batch["rewards"]
