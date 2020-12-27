@@ -90,12 +90,14 @@ class Visualizer:
             aabb = geom.aabb_local
             w, h, d = aabb.width(), aabb.height(), aabb.depth()
             box = hppfcl.Box(w, h, d)
+            #print(w,h,d)
             placement = pin.SE3(np.eye(3), aabb.center())
             geom_obj = pin.GeometryObject(f"aabb{i}", 0, parent_id, box, placement)
             color = np.array(hex_to_rgb(color)) / 255
             geom_obj.meshColor = np.array((color[0], color[1], color[2], 0.5))
             self.viz_model.addGeometryObject(geom_obj)
             i += 1
+        #assert(0)
         print("show aabb")
         self._create_data()
         self._create_viz()

@@ -29,7 +29,7 @@ def load(log_dir, exp_name, cpu, stochastic):
     return policy
 
 
-def runs(rollout_fn, process_path, episodes):
+def runs(rollout_fn, process_path, episodes, path_all):
     gen = range(episodes)
     if episodes > 1:
         gen = tqdm(gen)
@@ -37,6 +37,17 @@ def runs(rollout_fn, process_path, episodes):
     for i in gen:
         path = rollout_fn()
         paths.append(path)
+        for action in path["actions"]:
+            path_all["actions"].append(action)
+        for obs in path["observations"]:
+            path_all["observations"].append(obs)
+        for reward in path["rewards"]:
+            path_all["rewards"].append(reward)
+        for next_obs in path["next_observations"]:
+            path_all["next_observations"].append(next_obs)
+        for done in path["env_infos"]["success"]:
+            path_all["Done"].append(done)
+
         process_path(path)
     return paths
 
@@ -89,7 +100,7 @@ def evaluate(rollout_fn, episodes):
     return success_rate, collisions, paths_states
 
 
-def render(env, rollout_fn):
+def render(env, rollout_fn, nb_paths):
     count = []
 
     def process_path(path):
@@ -106,8 +117,41 @@ def render(env, rollout_fn):
         if hasattr(env, "log_diagnostics"):
             env.log_diagnostics([path])
 
-    while True:
-        path = runs(rollout_fn, process_path, 1)
+
+    # A path is a dict of 9 keys
+    # Dictionary: 'observations',
+    #             'actions',
+    #             'rewards',
+    #             'next_observations',
+    #             'terminals',
+    #             'agent_infos',
+    #             'env_infos',
+    #             'desired_goals',
+    #             'full_observations'
+    #print(path.keys())
+
+    import pickle
+    # write python dict to a file
+    output_file = open('/home/alisahili/Desktop/MVA/dataset.pkl', 'wb')
+
+    path_all = dict()
+    path_all["observations"] = []
+    path_all["actions"] = []
+    path_all["rewards"] = []
+    path_all["next_observations"] = []
+    path_all["Done"] = []
+
+    qq = 0
+    while qq < nb_paths: #True:
+        path = runs(rollout_fn, process_path, 1, path_all)
+        qq += 1
+
+    print("number of transitions: ", len(path_all["actions"]))
+    #print(path_all["actions"][0])
+
+    pickle.dump(path_all, output_file)
+    output_file.close()
+
     return path
 
 

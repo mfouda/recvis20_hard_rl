@@ -50,6 +50,7 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         self.variant = variant
         self.cur_range = cur_range
         self.max_grid_size = max_grid_size
+        self.filter_simple = True
 
     def _train(self):
         """ should be implemented in the inherited class"""

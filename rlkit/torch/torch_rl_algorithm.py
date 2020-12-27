@@ -12,6 +12,7 @@ from torch.nn.parallel import DistributedDataParallel as DDP
 from tqdm import tqdm
 
 import gtimer as gt
+import gc
 
 import sys
 # sys.path.insert(1, '../../nmp/')
@@ -51,6 +52,7 @@ def get_path_collector(variant, expl_env, eval_env, policy, eval_policy):
             representation_goal_key=variant["her"]["representation_goal_key"],
         )
     return expl_path_collector, eval_path_collector
+
 def get_replay_buffer(variant, expl_env):
     """
     Define replay buffer specific to the mode
@@ -116,7 +118,19 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
                 if epoch % self.cur_range == 0:
                     self.num_obstacles+=1
                     reset_kwargs = {'num_obstacles': self.num_obstacles}
+
             elif self.option is not None and self.option == "cur-v1":
+                if (epoch ) % (self.cur_range // 2) == 0 and epoch < 4*self.cur_range:
+                    self.filter_simple = not self.filter_simple
+                elif epoch >= 4*self.cur_range:
+                    self.filter_simple = True
+
+                if epoch % self.cur_range == 0:
+                    self.num_obstacles+=1
+
+                reset_kwargs = {'num_obstacles': self.num_obstacles, 'filter_simple': self.filter_simple}
+                    
+            elif self.option is not None and self.option == "cur-v2":
                 if epoch % self.cur_range == 0 and grid_size < self.max_grid_size:
                     grid_size+=1
                 expl_env = gym.make("Maze-grid-v" + str(grid_size))
@@ -133,6 +147,7 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
                 reset_kwargs = {}
             else:
                 reset_kwargs = {}
+
             self.eval_data_collector.collect_new_paths(
                 self.max_path_length,
                 self.num_eval_steps_per_epoch,
@@ -140,6 +155,7 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
                 reset_kwargs=reset_kwargs,
             )
             gt.stamp("evaluation sampling")
+
             if self.option is not None:
               print("#############")
               print("We are running a custom training with option: ", self.option)
@@ -147,8 +163,14 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
               print("the grid size is: ", grid_size)
               print("curriculum range: ", self.cur_range)
               print("max grid size: ", self.max_grid_size)
+              print("number of epochs: ", epoch, "/", self.num_epochs)
+              print("Filtering: ", self.filter_simple)
+              print("Options: ", self.option)
               print("#############")
+
             for _ in range(self.num_train_loops_per_epoch):
+                gc.collect()
+                
                 new_expl_paths = self.expl_data_collector.collect_new_paths(
                     self.max_path_length,
                     self.num_expl_steps_per_train_loop,
@@ -164,6 +186,11 @@ class TorchBatchRLAlgorithm(BatchRLAlgorithm):
 
                 for _ in tqdm(range(self.num_trains_per_train_loop), ncols=80):
                     train_data = self.replay_buffer.random_batch(self.batch_size)
+                    #print("-----------------------------------------------------------")
+                    #print("Observations: ", train_data["observations"].shape)
+                    #print("Actions: ", train_data["actions"].shape)
+                    #print("Next Obs: ", train_data["next_observations"].shape)
+                    #print(train_data.keys())
                     gt.stamp("batch sampling", unique=False)
                     self.trainer.train(train_data)
                     gt.stamp("training", unique=False)

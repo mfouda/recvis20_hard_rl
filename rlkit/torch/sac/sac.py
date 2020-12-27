@@ -80,6 +80,34 @@ class SACTrainer(TorchTrainer):
         obs = batch["observations"]
         actions = batch["actions"]
         next_obs = batch["next_observations"]
+        #print("Observations: ", obs.shape)
+        #print("Actions: ", actions)
+        #print("Next Obs: ", next_obs.shape)
+
+        #model_geomet, dist_goal = self.env.get_dataset()
+        #print("--------------------------------------------------------------------")
+        #print(model_geomet)
+        #print("====================================================================")
+        #assert(0)
+        """
+        geom_objs = self.env.geoms.geom_objs
+        print("--------------------------------------------------------------------")
+        for geom_obj in geom_objs:
+            print(geom_obj)
+            print('name of obstacle: ', geom_obj.name)
+            print("parentJoint: ", geom_obj.parentJoint)
+            print("parentFrame: ", geom_obj.parentFrame)
+            print("geometry: ", geom_obj.geometry.halfSide)
+            print("translation: ", geom_obj.placement.translation)
+            print("rotation: ", geom_obj.placement.rotation)
+            print("meshPath: ", geom_obj.meshPath)
+            print("meshScale: ", geom_obj.meshScale)
+            print("overrideMaterial: ", geom_obj.overrideMaterial)
+            print("meshColor: ", geom_obj.meshColor)
+            print('********************************************************')
+        print("====================================================================")
+        assert(0)
+        """
         """
         Policy and Alpha Loss
         """

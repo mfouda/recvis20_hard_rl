@@ -36,9 +36,9 @@ from nmp import settings
     help="all, last, gap, gap_and_last, none",
 )
 @click.option("-snap-gap", "--snapshot-gap", default=10, type=int)
-@click.option("-option", "--option", default=None, type=str, help='cur-v0 | cur-v1')
+@click.option("-option", "--option", default=None, type=str, help='cur-v0 | cur-v1 | cur-v2')
 @click.option("-cur-range", "--cur-range", default=None, type=int, help='150 | 200 ...')
-@click.option("-max-grid-size", "--max-grid-size", default=None, type=int, help='150 | 200 ...')
+@click.option("-max-grid-size", "--max-grid-size", default=None, type=int, help='5 | 7 ...')
 
 
 def main(

@@ -1,6 +1,7 @@
 from gym.envs.registration import register
 
 VISUALIZE= None #True
+verbose = None
 robot_ids = {
     "Sphere": "sphere",
     "SShape": "s_shape",
@@ -206,35 +207,35 @@ for ns in num_samples:
 register(
     id=f"Maze-grid-v3",
     entry_point="mpenv.envs.maze:maze_edges",
-    kwargs={"grid_size": 3, "visualize":VISUALIZE},
+    kwargs={"grid_size": 3, "visualize":VISUALIZE, "verbose":verbose},
 )
 register(
     id=f"Maze-grid-v5",
     entry_point="mpenv.envs.maze:maze_edges",
-    kwargs={"grid_size": 5, "visualize":VISUALIZE},
+    kwargs={"grid_size": 5, "visualize":VISUALIZE, "verbose":verbose},
 )
 register(
     id=f"Maze-grid-v7",
     entry_point="mpenv.envs.maze:maze_edges",
-    kwargs={"grid_size": 7, "visualize":VISUALIZE},
+    kwargs={"grid_size": 7, "visualize":VISUALIZE, "verbose":verbose},
 )
 register(
     id=f"Maze-grid-v1",
     entry_point="mpenv.envs.maze:maze_edges",
-    kwargs={"grid_size": 1, "visualize":VISUALIZE},
+    kwargs={"grid_size": 1, "visualize":VISUALIZE, "verbose":verbose},
 )
 register(
     id=f"Maze-grid-v2",
     entry_point="mpenv.envs.maze:maze_edges",
-    kwargs={"grid_size": 2, "visualize":VISUALIZE},
+    kwargs={"grid_size": 2, "visualize":VISUALIZE, "verbose":verbose},
 )
 register(
     id=f"Maze-grid-v4",
     entry_point="mpenv.envs.maze:maze_edges",
-    kwargs={"grid_size": 4, "visualize":VISUALIZE},
+    kwargs={"grid_size": 4, "visualize":VISUALIZE, "verbose":verbose},
 )
 register(
     id=f"Maze-grid-v6",
     entry_point="mpenv.envs.maze:maze_edges",
-    kwargs={"grid_size": 6, "visualize":VISUALIZE},
+    kwargs={"grid_size": 6, "visualize":VISUALIZE, "verbose":verbose},
 )

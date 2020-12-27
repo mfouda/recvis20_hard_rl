@@ -21,6 +21,7 @@ from rlkit.samplers.rollout_functions import (
 @click.option("-exp", "--exp-name", default="", type=str)
 @click.option("-s", "--seed", default=None, type=int)
 @click.option("-h", "--horizon", default=50, type=int, help="max steps allowed")
+@click.option("-n", "--nb-paths", default=100, type=int, help="number of paths to save")
 @click.option(
     "-e", "--episodes", default=0, type=int, help="number of episodes to evaluate"
 )
@@ -32,7 +33,7 @@ from rlkit.samplers.rollout_functions import (
     is_flag=True,
     help="stochastic mode",
 )
-def main(env_name, exp_name, seed, horizon, episodes, cpu, stochastic):
+def main(env_name, exp_name, seed, horizon, nb_paths, episodes, cpu, stochastic):
     if not cpu:
         set_gpu_mode(True)
     set_seed(seed)
@@ -67,8 +68,9 @@ def main(env_name, exp_name, seed, horizon, episodes, cpu, stochastic):
             **reset_kwargs,
         )
 
+    print("number of paths: ", nb_paths)
     if render:
-        paths = utils.render(env, rollout_fn)
+        paths = utils.render(env, rollout_fn, nb_paths)
     else:
         success_rate, n_col, paths_states = utils.evaluate(rollout_fn, episodes)
         print(f"Success rate: {success_rate} - Collisions: {n_col}")

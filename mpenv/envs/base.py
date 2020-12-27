@@ -74,6 +74,7 @@ class Base(gym.Env):
                 ),
             }
         )
+        self.verbose = None
 
     def add_robot(self, robot_name, bounds):
         model_wrapper = self.model_wrapper
@@ -234,6 +235,8 @@ class Base(gym.Env):
         self.done = done
 
         info = {"collided": collided, "success": success}
+        if self.verbose: print('-------------------------------------------')
+        if self.verbose: print(self.state)
 
         return self.observation(), reward, done, info
 
@@ -337,3 +340,7 @@ class Base(gym.Env):
             return (x - self.normalizer_local["mean"]) / self.normalizer_local["std"]
         elif coordinate_frame == "global":
             return (x - self.normalizer_global["mean"]) / self.normalizer_global["std"]
+
+    def get_dataset(self):
+        return self.model_wrapper.geom_model,\
+               self.robot_props["dist_goal"]

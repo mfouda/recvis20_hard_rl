@@ -18,6 +18,7 @@ class MazeObserver(BaseObserver):
         self.max_edges = 2 * receptive_field * (receptive_field + 1)
         # number of edges at last index
         self.obstacles_dim = self.max_edges * self.obstacle_point_dim + 1
+        print(self.obstacles_dim, self.max_edges, self.obstacle_point_dim, receptive_field)
 
         # update observation definition to add the obstacles representation
         self.add_observation("obstacles", self.obstacles_dim)
@@ -26,9 +27,13 @@ class MazeObserver(BaseObserver):
         o = self.env.reset(**kwargs)
         edges = []
         geom_objs = self.env.geoms.geom_objs
+        #print("Obstacles: ", geom_objs)
         k = 0
+        my_coords = []
         for i, obst in enumerate(geom_objs):
             x, y = obst.placement.translation[:2]
+            #print("Obstacles Coord: ", obst.placement.translation)
+            my_coords.append([x,y])
             if (x > 0.1 and x < 0.9) and (y > 0.1 and y < 0.9):
                 k+=1
             if 'num_obstacles' in kwargs and k > kwargs['num_obstacles'] and ((x > 0.1 and x < 0.9) and (y > 0.1 and y < 0.9)):
@@ -41,8 +46,13 @@ class MazeObserver(BaseObserver):
             edges.append([x - w / 2, y - h / 2, x + w / 2, y + h / 2])
         edges = np.array(edges)
         self.edges = edges
+        #print("Edges: ", self.edges)
+
         o = self.observation(o)
         return o
+
+    def get_Edges(self):
+        return self.edges
 
     def represent_obstacles(self, edges, ee_pos):
         edges = edges.copy()
@@ -55,10 +65,10 @@ class MazeObserver(BaseObserver):
         # edges = edges[dist < self.visible_cells / self.env.maze.nx]
 
         # uncomment for visualization
-        if self.visualize:
-          p0 = np.hstack((edges[:, :2], np.zeros((edges.shape[0], 1))))
-          p1 = np.hstack((edges[:, 2:], np.zeros((edges.shape[0], 1))))
-          self.env.o3d_viz.show_lines(p0, p1, blocking=False)
+        #if self.visualize:
+        p0 = np.hstack((edges[:, :2], np.zeros((edges.shape[0], 1))))
+        p1 = np.hstack((edges[:, 2:], np.zeros((edges.shape[0], 1))))
+        self.env.o3d_viz.show_lines(p0, p1, blocking=False)
 
         edges_pad = np.zeros((self.max_edges, self.obstacle_point_dim))
         edges_pad[: edges.shape[0]] = edges
@@ -80,6 +90,8 @@ class MazeObserver(BaseObserver):
         current_state, goal_state = state["current"], state["goal"]
         obs_wrapper = self.compute_obs(current_state)
 
+        #print("----------------------------------------")
+        #print("Obstacles: ", obs_wrapper["edges"])
         obs["observation"] = np.concatenate((obs["observation"], obs_wrapper["edges"]))
 
         return obs

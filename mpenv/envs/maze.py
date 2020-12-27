@@ -22,7 +22,7 @@ from mpenv.observers.maze import MazeObserver
 
 
 class MazeGoal(Base):
-    def __init__(self, grid_size, visualize=None):
+    def __init__(self, grid_size, visualize=None, verbose=None):
         super().__init__(robot_name="sphere")
 
         self.thickness = 0.02
@@ -42,6 +42,7 @@ class MazeGoal(Base):
 
         self.fig, self.ax, self.pos = None, None, None
         self.visualize = visualize
+        self.verbose = verbose
 
     def _reset(self, idx_env=None, start=None, goal=None, bounds=None, filter_simple = True, num_obstacles=None):
         model_wrapper = self.model_wrapper
@@ -84,6 +85,8 @@ class MazeGoal(Base):
         if self.fig:
             plt.close()
         self.fig, self.ax, self.pos = None, None, None
+        if self.verbose: print(self.state)
+        if self.verbose: print(self.goal_state)
 
         return self.observation()
 
@@ -165,6 +168,7 @@ class MazeGoal(Base):
 
 
 def extract_obstacles(maze, thickness):
+    print("thickness: ", thickness)
     scx = 1 / maze.nx
     scy = 1 / maze.ny
 
@@ -215,8 +219,8 @@ def extract_obstacles(maze, thickness):
     return obstacles
 
 
-def maze_edges(grid_size, visualize):
-    env = MazeGoal(grid_size, visualize=visualize)
+def maze_edges(grid_size, visualize, verbose):
+    env = MazeGoal(grid_size, visualize=visualize, verbose=verbose)
     env = MazeObserver(env)
     coordinate_frame = "local"
     env = RobotLinksObserver(env, coordinate_frame)
