@@ -230,3 +230,123 @@ class TorchTrainer(Trainer, metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def networks(self) -> Iterable[nn.Module]:
         pass
+
+
+class TorchfDBatchRLAlgorithm(BatchRLAlgorithm):
+    def to(self, device, distributed=False):
+        networks = self.trainer.networks
+        for i, net in enumerate(networks):
+            net.to(device.index)
+            if distributed:
+                networks[i] = DDP(
+                    net, device_ids=[device.index], find_unused_parameters=True
+                )
+        self.trainer.networks = networks
+
+    def training_mode(self, mode):
+        for net in self.trainer.networks:
+            net.train(mode)
+
+    def _train(self):
+        if self.min_num_steps_before_training > 0:
+            init_expl_paths = self.expl_data_collector.collect_new_paths(
+                self.max_path_length,
+                self.min_num_steps_before_training,
+                discard_incomplete_paths=False,
+            )
+            self.replay_buffer.add_paths(init_expl_paths)
+            self.expl_data_collector.end_epoch(-1)
+        self.num_obstacles = 0
+        self.upper_x = 0.2
+        self.upper_y = 0.2
+        grid_size = 1 #start with grid size of 2
+        self.bounds = None
+        success_rate = 0
+        last_update = 0
+        self.curr_thresh = 0.7
+        for epoch in gt.timed_for(
+            range(self._start_epoch, self.num_epochs), save_itrs=True,
+        ):
+            if self.option is not None and self.option == "cur-v0":
+                if epoch % self.cur_range == 0:
+                    self.num_obstacles+=1
+                    reset_kwargs = {'num_obstacles': self.num_obstacles}
+            elif self.option is not None and self.option == "cur-v1": #(epoch - last_update) % (3 * self.cur_range) == 0 or
+                if (epoch == 0 or success_rate > self.curr_thresh) and grid_size < self.max_grid_size:
+                    grid_size+=1
+                    expl_env = gym.make("Maze-grid-v" + str(grid_size))
+                    eval_env = gym.make("Maze-grid-v" + str(grid_size))
+                    expl_env.seed(self.variant["seed"])
+                    eval_env.set_eval()
+                    expl_policy = self.policy
+                    eval_policy = MakeDeterministic(self.policy)
+                    self.replay_buffer = get_replay_buffer(self.variant, expl_env)
+
+                    self.expl_data_collector, self.eval_data_collector = get_path_collector(
+                        self.variant, expl_env, eval_env, expl_policy, eval_policy, grid_size
+                    )
+                    if grid_size < 3:
+                        filter_simple = False
+                    else:
+                        filter_simple = True
+                    reset_kwargs = {'filter_simple': filter_simple}
+                    last_update = epoch
+                    # if self.curr_thresh >= 0.71:
+                    #     self.curr_thresh -=0.1
+            elif self.option is not None and self.option == "cur-v2":
+                if epoch % self.cur_range == 0 or success_rate > 0.8:
+                    if self.upper_x <= 0.8:
+                        self.upper_x+=0.2
+                        self.upper_y+= 0.2
+                        self.bounds = np.array(
+                            [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0], [self.upper_x, self.upper_y, 0.0, 0.0, 0.0, 0.0, 1.0]]
+                        )
+                    else:
+                        self.bounds = None
+                    reset_kwargs = {'bounds': self.bounds}
+            elif self.option is not None:
+                print("this curr option is not available")
+                raise
+            else:
+                reset_kwargs = {}
+            self.eval_data_collector.collect_new_paths(
+                self.max_path_length,
+                self.num_eval_steps_per_epoch,
+                discard_incomplete_paths=True,
+                reset_kwargs=reset_kwargs,
+            )
+            gt.stamp("evaluation sampling")
+            if self.option is not None:
+              print("#############")
+              print("We are running a custom training with option: ", self.option)
+              print("the number of obstacles is: ", self.num_obstacles)
+              print("the grid size is: ", grid_size)
+              print("curriculum range: ", self.cur_range)
+              print("max grid size: ", self.max_grid_size)
+              print("bounds :", self.bounds)
+              print("#############")
+            for _ in range(self.num_train_loops_per_epoch):
+                new_expl_paths = self.expl_data_collector.collect_new_paths(
+                    self.max_path_length,
+                    self.num_expl_steps_per_train_loop,
+                    discard_incomplete_paths=False,
+                    reset_kwargs=reset_kwargs,
+                )
+                gt.stamp("exploration sampling", unique=False)
+
+                self.replay_buffer.add_paths(new_expl_paths)
+                gt.stamp("data storing", unique=False)
+
+                self.training_mode(True)
+
+                for _ in tqdm(range(self.num_trains_per_train_loop), ncols=80):
+                    train_data = self.replay_buffer.random_batch(self.batch_size)
+                    train_data_demo = self.replay_buffer_demo.random_batch(self.batch_size)
+                    gt.stamp("batch sampling", unique=False)
+                    self.trainer.train(train_data, train_data_demo)
+                    gt.stamp("training", unique=False)
+                self.training_mode(False)
+
+            stats = self.eval_data_collector.get_diagnostics()
+            success_rate = stats["SuccessRate"]
+            self._end_epoch(epoch, self.range)
