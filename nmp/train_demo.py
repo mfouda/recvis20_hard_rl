@@ -63,6 +63,7 @@ from nmp import settings
 ## demo
 @click.option("-gamma-bc", "--gamma-bc", default=1, type=float, help='bc loss')
 @click.option("-demo-path", "--demo-path", default="/data/dataset_100.pkl", type=str, help='demo path')
+@click.option("-bc-dist", "--bc-dist", default=False, type=bool, help='mu and std loss')
 
 
 
@@ -108,6 +109,7 @@ def main(
     pretrain_path,
     gamma_bc,
     demo_path,
+    bc_dist,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -165,6 +167,7 @@ def main(
             use_automatic_entropy_tuning=auto_alpha,
             alpha=alpha,
             gamma_bc=gamma_bc,
+            bc_dist=bc_dist,
         ),
         qf_kwargs=dict(hidden_dim=hidden_dim, n_layers=n_layers, action_dimension=nz_vae),
         policy_kwargs=dict(hidden_dim=hidden_dim,

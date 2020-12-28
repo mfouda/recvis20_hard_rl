@@ -262,6 +262,7 @@ class SACfDTrainer(TorchTrainer):
         qf1_optimizer=None,
         qf2_optimizer=None,
         gamma_bc=1,
+        bc_dist=False,
     ):
         super().__init__()
         self.env = env
@@ -304,6 +305,7 @@ class SACfDTrainer(TorchTrainer):
         self._need_to_update_eval_statistics = True
         self.bc_loss = nn.MSELoss()
         self.gamma_bc = gamma_bc
+        self.bc_dist = bc_dist
 
     def train(self, np_batch, batch_demo):
         self._num_train_steps += 1
@@ -351,7 +353,11 @@ class SACfDTrainer(TorchTrainer):
         new_obs_actions_demo, policy_mean_demo, policy_log_std_demo, log_pi_demo, *_ = self.policy(
             obs_demo, reparameterize=True, return_log_prob=True,
         )
-        bc_loss =  torch.mean(self.bc_loss(new_obs_actions_demo, actions_demo), dim=-1)
+        if self.bc_dist:
+            bc_loss = torch.mean(self.bc_loss(policy_mean_demo, actions_demo), dim=-1) + \
+                      torch.mean(self.bc_loss(torch.exp(policy_log_std_demo), torch.ones_like(policy_log_std_demo).to(self.device)*0.5), dim=-1)
+        else:
+            bc_loss = torch.mean(self.bc_loss(new_obs_actions_demo, actions_demo), dim=-1)
 
         policy_loss = (alpha * log_pi - q_new_actions).mean() + self.gamma_bc * bc_loss
         """
@@ -414,6 +420,7 @@ class SACfDTrainer(TorchTrainer):
             self.eval_statistics["QF1 Loss"] = np.mean(ptu.get_numpy(qf1_loss))
             self.eval_statistics["QF2 Loss"] = np.mean(ptu.get_numpy(qf2_loss))
             self.eval_statistics["Policy Loss"] = np.mean(ptu.get_numpy(policy_loss))
+            self.eval_statistics["BC Loss"] = np.mean(ptu.get_numpy(bc_loss))
             self.eval_statistics["QF1 Grad Norm"] = ptu.get_numpy(norm_qf1)
             self.eval_statistics["QF2 Grad Norm"] = ptu.get_numpy(norm_qf2)
             self.eval_statistics["Policy Grad Norm"] = ptu.get_numpy(norm_policy)
