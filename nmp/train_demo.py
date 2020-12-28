@@ -64,6 +64,7 @@ from nmp import settings
 @click.option("-gamma-bc", "--gamma-bc", default=1, type=float, help='bc loss')
 @click.option("-demo-path", "--demo-path", default="/data/dataset_100.pkl", type=str, help='demo path')
 @click.option("-bc-dist", "--bc-dist", default=False, type=bool, help='mu and std loss')
+@click.option("-warm-up", "--warm-up", default=50, type=int, help='warm-up')
 
 
 
@@ -110,6 +111,7 @@ def main(
     gamma_bc,
     demo_path,
     bc_dist,
+    warm_up,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -186,6 +188,7 @@ def main(
                             action_dim=action_dim,
                             n_rollout_steps=n_rollout_steps),
         pretrain_path=pretrain_path,
+        warm_up=warm_up,
     )
     if mode == "her":
         variant["replay_buffer_kwargs"].update(

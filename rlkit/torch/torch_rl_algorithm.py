@@ -352,6 +352,12 @@ class TorchfDBatchRLAlgorithm(BatchRLAlgorithm):
               print("max grid size: ", self.max_grid_size)
               print("bounds :", self.bounds)
               print("#############")
+
+            if epoch > self.warm_up:
+                self.trainer.use_bc = False
+            else:
+                self.trainer.use_bc = True
+
             for _ in range(self.num_train_loops_per_epoch):
                 new_expl_paths = self.expl_data_collector.collect_new_paths(
                     self.max_path_length,

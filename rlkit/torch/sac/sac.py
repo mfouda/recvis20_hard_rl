@@ -306,6 +306,8 @@ class SACfDTrainer(TorchTrainer):
         self.bc_loss = nn.MSELoss()
         self.gamma_bc = gamma_bc
         self.bc_dist = bc_dist
+        self.device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+        self.trainer.use_bc = True
 
     def train(self, np_batch, batch_demo):
         self._num_train_steps += 1
@@ -353,13 +355,16 @@ class SACfDTrainer(TorchTrainer):
         new_obs_actions_demo, policy_mean_demo, policy_log_std_demo, log_pi_demo, *_ = self.policy(
             obs_demo, reparameterize=True, return_log_prob=True,
         )
-        if self.bc_dist:
-            bc_loss = torch.mean(self.bc_loss(policy_mean_demo, actions_demo), dim=-1) + \
-                      torch.mean(self.bc_loss(torch.exp(policy_log_std_demo), torch.ones_like(policy_log_std_demo).to(self.device)*0.5), dim=-1)
-        else:
-            bc_loss = torch.mean(self.bc_loss(new_obs_actions_demo, actions_demo), dim=-1)
+        if self.trainer.use_bc:
+            if self.bc_dist:
+                bc_loss = torch.mean(self.bc_loss(policy_mean_demo, actions_demo), dim=-1) + \
+                          torch.mean(self.bc_loss(torch.exp(policy_log_std_demo), torch.ones_like(policy_log_std_demo).to(self.device)*0.5), dim=-1)
+            else:
+                bc_loss = torch.mean(self.bc_loss(new_obs_actions_demo, actions_demo), dim=-1)
 
-        policy_loss = (alpha * log_pi - q_new_actions).mean() + self.gamma_bc * bc_loss
+            policy_loss = (alpha * log_pi - q_new_actions).mean() + self.gamma_bc * bc_loss
+        else:
+            policy_loss = (alpha * log_pi - q_new_actions).mean()
         """
         QF Loss
         """

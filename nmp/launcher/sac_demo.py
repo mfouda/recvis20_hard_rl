@@ -196,6 +196,7 @@ def sacfd(variant):
         **variant["algorithm_kwargs"],
         variant=variant,
         replay_buffer_demo=replay_buffer_demo,
+        warm_up=variant["warm_up"],
     )
 
     algorithm.to(ptu.device)
