@@ -307,15 +307,14 @@ class SACfDTrainer(TorchTrainer):
         self.gamma_bc = gamma_bc
         self.bc_dist = bc_dist
         self.device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
-        self.trainer.use_bc = True
 
-    def train(self, np_batch, batch_demo):
+    def train(self, np_batch, batch_demo, use_bc=False):
         self._num_train_steps += 1
         torch_batch = np_to_pytorch_batch(np_batch)
         torch_batch_demo = np_to_pytorch_batch(batch_demo)
-        self.train_from_torch(torch_batch, torch_batch_demo)
+        self.train_from_torch(torch_batch, torch_batch_demo, use_bc=use_bc)
 
-    def train_from_torch(self, batch, batch_demo):
+    def train_from_torch(self, batch, batch_demo, use_bc=False):
         rewards = batch["rewards"]
         terminals = batch["terminals"]
         obs = batch["observations"]
@@ -355,7 +354,7 @@ class SACfDTrainer(TorchTrainer):
         new_obs_actions_demo, policy_mean_demo, policy_log_std_demo, log_pi_demo, *_ = self.policy(
             obs_demo, reparameterize=True, return_log_prob=True,
         )
-        if self.trainer.use_bc:
+        if use_bc:
             if self.bc_dist:
                 bc_loss = torch.mean(self.bc_loss(policy_mean_demo, actions_demo), dim=-1) + \
                           torch.mean(self.bc_loss(torch.exp(policy_log_std_demo), torch.ones_like(policy_log_std_demo).to(self.device)*0.5), dim=-1)

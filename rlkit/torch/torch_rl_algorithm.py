@@ -354,9 +354,9 @@ class TorchfDBatchRLAlgorithm(BatchRLAlgorithm):
               print("#############")
 
             if epoch > self.warm_up:
-                self.trainer.use_bc = False
+                use_bc = False
             else:
-                self.trainer.use_bc = True
+                use_bc = True
 
             for _ in range(self.num_train_loops_per_epoch):
                 new_expl_paths = self.expl_data_collector.collect_new_paths(
@@ -376,7 +376,7 @@ class TorchfDBatchRLAlgorithm(BatchRLAlgorithm):
                     train_data = self.replay_buffer.random_batch(self.batch_size)
                     train_data_demo = self.replay_buffer_demo.random_batch(self.batch_size)
                     gt.stamp("batch sampling", unique=False)
-                    self.trainer.train(train_data, train_data_demo)
+                    self.trainer.train(train_data, train_data_demo, use_bc)
                     gt.stamp("training", unique=False)
                 self.training_mode(False)
 
