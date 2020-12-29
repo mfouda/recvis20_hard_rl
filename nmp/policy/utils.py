@@ -38,7 +38,7 @@ def runs(rollout_fn, process_path, episodes, path_all, perfect=False):
         path = rollout_fn()
         paths.append(path)
         if perfect:
-            if path["env_infos"]["success"][-1][0]:
+            if path["env_infos"]["success"][-1][0] and np.sum(path['rewards']) > 0:
                 for action in path["actions"]:
                     path_all["actions"].append(action)
                 for obs in path["observations"]:

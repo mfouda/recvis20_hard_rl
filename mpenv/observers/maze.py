@@ -66,9 +66,9 @@ class MazeObserver(BaseObserver):
 
         # uncomment for visualization
         #if self.visualize:
-        p0 = np.hstack((edges[:, :2], np.zeros((edges.shape[0], 1))))
-        p1 = np.hstack((edges[:, 2:], np.zeros((edges.shape[0], 1))))
-        self.env.o3d_viz.show_lines(p0, p1, blocking=False)
+        # p0 = np.hstack((edges[:, :2], np.zeros((edges.shape[0], 1))))
+        # p1 = np.hstack((edges[:, 2:], np.zeros((edges.shape[0], 1))))
+        # self.env.o3d_viz.show_lines(p0, p1, blocking=False)
 
         edges_pad = np.zeros((self.max_edges, self.obstacle_point_dim))
         edges_pad[: edges.shape[0]] = edges
