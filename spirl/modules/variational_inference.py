@@ -208,7 +208,7 @@ class SequentialGaussian_SharedPQ:
         for i, j in zip(self.g1.shape, self.g2.shape):
             if i != j: break
             shared_dims += 1
-        assert shared_dims is not 0  # need at least one shared dim between the Gaussians
+        assert shared_dims != 0  # need at least one shared dim between the Gaussians
         self.shared_dims = shared_dims
 
 

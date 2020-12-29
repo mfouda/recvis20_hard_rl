@@ -235,12 +235,12 @@ class TorchfDTrainer(Trainer, metaclass=abc.ABCMeta):
     def __init__(self):
         self._num_train_steps = 0
 
-    def train(self, np_batch, np_batch_demo):
+    def train(self, np_batch, np_batch_demo, use_bc=False):
         self._num_train_steps += 1
         torch_batch = np_to_pytorch_batch(np_batch)
         torch_batch_demo = np_to_pytorch_batch(np_batch_demo)
 
-        self.train_from_torch(torch_batch, torch_batch_demo)
+        self.train_from_torch(torch_batch, torch_batch_demo, use_bc)
 
     def eval(self, np_batch):
         self._num_train_steps += 1
@@ -251,7 +251,7 @@ class TorchfDTrainer(Trainer, metaclass=abc.ABCMeta):
         return OrderedDict([("num train calls", self._num_train_steps),])
 
     @abc.abstractmethod
-    def train_from_torch(self, batch, batch_demo):
+    def train_from_torch(self, batch, batch_demo, use_bc=False):
         pass
 
     @property

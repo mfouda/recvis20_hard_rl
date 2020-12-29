@@ -5,8 +5,8 @@ from spirl.utils.general_utils import AttrDict
 from spirl.rl.components.agent import FixedIntervalHierarchicalAgent
 from spirl.rl.policies.mlp_policies import SplitObsMLPPolicy
 from spirl.rl.components.critic import SplitObsMLPCritic
-from spirl.rl.envs.maze import ACRandMaze0S40Env
-from spirl.rl.components.sampler import ACMultiImageAugmentedHierarchicalSampler
+from spirl.rl.envs.maze_custom import MazeEnv
+from spirl.rl.components.sampler import ACMultiImageAugmentedHierarchicalSampler, HierarchicalSampler, Sampler
 from spirl.rl.components.replay_buffer import UniformReplayBuffer
 from spirl.rl.agents.ac_agent import SACAgent
 from spirl.models.skill_prior_mdl import ImageSkillPriorMdl
@@ -16,13 +16,13 @@ from spirl.data.maze.src.maze_agents import MazeACSkillSpaceAgent
 
 current_dir = os.path.dirname(os.path.realpath(__file__))
 
-notes = 'hierarchical RL on the maze env'
+notes = 'hierarchical RL on the maze custom env'
 
 configuration = {
     'seed': 42,
     'agent': FixedIntervalHierarchicalAgent,
-    'environment': ACRandMaze0S40Env,
-    'sampler': ACMultiImageAugmentedHierarchicalSampler,
+    'environment': MazeEnv,
+    'sampler': HierarchicalSampler,
     'data_dir': '.',
     'num_epochs': 30,
     'max_rollout_len': 2000,
@@ -123,8 +123,8 @@ data_config.dataset_spec = data_spec
 # Environment
 env_config = AttrDict(
     reward_norm=1.,
-    screen_height=ll_model_params.prior_input_res,
-    screen_width=ll_model_params.prior_input_res,
+    # screen_height=ll_model_params.prior_input_res,
+    # screen_width=ll_model_params.prior_input_res,
 )
 
 # reduce replay capacity because we are training image-based, do not dump (too large)

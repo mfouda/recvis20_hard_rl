@@ -130,6 +130,8 @@ def process_input(input_indices, elem_dim, coordinate_frame, *input):
     else:
         out, action = input[0], None
 
+    if len(out.shape) == 1:
+        out = out.unsqueeze(0)
     batch_size = out.shape[0]
     obstacles = out[:, input_indices["obstacles"]]
     n_elems = obstacles[:, -1]

@@ -363,6 +363,7 @@ class SACfDTrainer(TorchTrainer):
 
             policy_loss = (alpha * log_pi - q_new_actions).mean() + self.gamma_bc * bc_loss
         else:
+            bc_loss = torch.tensor([0])
             policy_loss = (alpha * log_pi - q_new_actions).mean()
         """
         QF Loss

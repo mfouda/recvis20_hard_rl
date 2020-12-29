@@ -34,6 +34,8 @@ from spirl.modules.variational_inference import ProbabilisticModel, Gaussian, Mu
 from spirl.utils.general_utils import AttrDict
 from spirl.utils.pytorch_utils import map2np, ten2ar, RemoveSpatial, ResizeSpatial, map2torch, find_tensor
 import torch.nn as nn
+import contextlib
+from spirl.utils.pytorch_utils import map2torch, map2np, no_batchnorm_update
 
 
 class SkillPriorInference(nn.Module):
@@ -75,7 +77,7 @@ class SkillPriorAgent(nn.Module, ExplorationPolicy):
         return eval_np(self, obs_np, deterministic=deterministic)
 
     def forward(
-        self, obs, reparameterize=True, deterministic=False, return_log_prob=False,
+        self, obs, reparameterize=True, deterministic=False, return_log_prob=False, act=False,
     ):
         """
         :param obs: Observation
@@ -96,9 +98,12 @@ class SkillPriorAgent(nn.Module, ExplorationPolicy):
             log_prob = None
             z_sample = z
         # decode
-        actions = self.decode(z_sample,
-                                cond_inputs=None, #self._learned_prior_input(inputs),
-                                steps=self.variant["decoder_kwargs"]["n_rollout_steps"])
+
+        with no_batchnorm_update(self.policy) if obs.shape[0] == 1 else contextlib.suppress():
+            actions = self.decode(z_sample,
+                                    cond_inputs=None, #self._learned_prior_input(inputs),
+                                    steps=self.variant["decoder_kwargs"]["n_rollout_steps"])
+
 
         return (actions, z_sample, mean, log_std, log_prob)
 
@@ -127,9 +132,9 @@ class SkillPriorAgent(nn.Module, ExplorationPolicy):
         :arg steps: number of steps decoder is rolled out
         """
         ## these to pass also the state to the decoder
-        # lstm_init_input = self.decoder_input_initalizer(cond_inputs)
+        lstm_init_input = self.decoder_input_initalizer(cond_inputs)
         # lstm_init_hidden = self.decoder_hidden_initalizer(cond_inputs)
-        return self.decoder(lstm_initial_inputs=None, #AttrDict(x_t=lstm_init_input),
+        return self.decoder(lstm_initial_inputs=AttrDict(x_t=lstm_init_input), #AttrDict(x_t=lstm_init_input),
                             lstm_static_inputs=AttrDict(z=z),
                             steps=steps,
                             ).pred #lstm_hidden_init=lstm_init_hidden
@@ -214,7 +219,7 @@ def get_networks(variant, expl_env, device, batch_size):
     prior = nn.Sequential(
         # ResizeSpatial(self._hp.prior_input_res),
         policy_encoder,
-        RemoveSpatial(),
+        # RemoveSpatial(),
         BaseProcessingNet(in_dim=variant["policy_kwargs"]["encoder_output_size"],
                           mid_dim=variant["policy_kwargs"]["nz_mid"],
                           out_dim=variant["policy_kwargs"]["nz_vae"] * 2,
@@ -229,7 +234,7 @@ def get_networks(variant, expl_env, device, batch_size):
     policy = nn.Sequential(
         # ResizeSpatial(self._hp.prior_input_res),
         policy_encoder,
-        RemoveSpatial(),
+        # RemoveSpatial(),
         BaseProcessingNet(in_dim=variant["policy_kwargs"]["encoder_output_size"],
                           mid_dim=variant["policy_kwargs"]["nz_mid"],
                           out_dim=variant["policy_kwargs"]["nz_vae"] * 2,
