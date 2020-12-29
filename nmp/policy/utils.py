@@ -29,7 +29,7 @@ def load(log_dir, exp_name, cpu, stochastic):
     return policy
 
 
-def runs(rollout_fn, process_path, episodes, path_all):
+def runs(rollout_fn, process_path, episodes, path_all, perfect=False):
     gen = range(episodes)
     if episodes > 1:
         gen = tqdm(gen)
@@ -37,16 +37,31 @@ def runs(rollout_fn, process_path, episodes, path_all):
     for i in gen:
         path = rollout_fn()
         paths.append(path)
-        for action in path["actions"]:
-            path_all["actions"].append(action)
-        for obs in path["observations"]:
-            path_all["observations"].append(obs)
-        for reward in path["rewards"]:
-            path_all["rewards"].append(reward)
-        for next_obs in path["next_observations"]:
-            path_all["next_observations"].append(next_obs)
-        for done in path["env_infos"]["success"]:
-            path_all["Done"].append(done)
+        if perfect:
+            if path["env_infos"]["success"][-1][0]:
+                for action in path["actions"]:
+                    path_all["actions"].append(action)
+                for obs in path["observations"]:
+                    path_all["observations"].append(obs)
+                for reward in path["rewards"]:
+                    path_all["rewards"].append(reward)
+                for next_obs in path["next_observations"]:
+                    path_all["next_observations"].append(next_obs)
+                for done in path["env_infos"]["success"]:
+                    path_all["Done"].append(done)
+            else:
+                print("path discarded")
+        else:
+            for action in path["actions"]:
+                path_all["actions"].append(action)
+            for obs in path["observations"]:
+                path_all["observations"].append(obs)
+            for reward in path["rewards"]:
+                path_all["rewards"].append(reward)
+            for next_obs in path["next_observations"]:
+                path_all["next_observations"].append(next_obs)
+            for done in path["env_infos"]["success"]:
+                path_all["Done"].append(done)
 
         process_path(path)
     return paths
@@ -100,7 +115,7 @@ def evaluate(rollout_fn, episodes):
     return success_rate, collisions, paths_states
 
 
-def render(env, rollout_fn, nb_paths):
+def render(env, rollout_fn, nb_paths, output_path, perfect=False):
     count = []
 
     def process_path(path):
@@ -132,7 +147,7 @@ def render(env, rollout_fn, nb_paths):
 
     import pickle
     # write python dict to a file
-    output_file = open('/home/alisahili/Desktop/MVA/dataset.pkl', 'wb')
+    output_file = open(output_path, 'wb')
 
     path_all = dict()
     path_all["observations"] = []
@@ -143,7 +158,7 @@ def render(env, rollout_fn, nb_paths):
 
     qq = 0
     while qq < nb_paths: #True:
-        path = runs(rollout_fn, process_path, 1, path_all)
+        path = runs(rollout_fn, process_path, 1, path_all, perfect=perfect)
         qq += 1
 
     print("number of transitions: ", len(path_all["actions"]))
