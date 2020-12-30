@@ -29,6 +29,7 @@ def load(log_dir, exp_name, cpu, stochastic):
     return policy
 
 
+
 def runs(rollout_fn, process_path, episodes, path_all, perfect=False, render_gen_data=False):
     gen = range(episodes)
     if episodes > 1:
