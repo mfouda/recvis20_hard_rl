@@ -353,7 +353,7 @@ class TorchfDBatchRLAlgorithm(BatchRLAlgorithm):
               print("bounds :", self.bounds)
               print("#############")
 
-            if epoch > self.warm_up:
+            if self.warm_up is not None and epoch > self.warm_up:
                 use_bc = False
             else:
                 use_bc = True

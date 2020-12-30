@@ -64,7 +64,7 @@ from nmp import settings
 @click.option("-gamma-bc", "--gamma-bc", default=1, type=float, help='bc loss')
 @click.option("-demo-path", "--demo-path", default="/data/dataset_100.pkl", type=str, help='demo path')
 @click.option("-bc-dist", "--bc-dist", default=False, type=bool, help='mu and std loss')
-@click.option("-warm-up", "--warm-up", default=50, type=int, help='warm-up')
+@click.option("-warm-up", "--warm-up", default=None, type=int, help='warm-up')
 @click.option("-batch-size-demo", "--batch-size-demo", default=64, type=int, help='warm-up')
 
 
