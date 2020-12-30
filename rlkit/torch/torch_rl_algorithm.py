@@ -374,7 +374,7 @@ class TorchfDBatchRLAlgorithm(BatchRLAlgorithm):
 
                 for _ in tqdm(range(self.num_trains_per_train_loop), ncols=80):
                     train_data = self.replay_buffer.random_batch(self.batch_size)
-                    train_data_demo = self.replay_buffer_demo.random_batch(self.batch_size)
+                    train_data_demo = self.replay_buffer_demo.random_batch(self.batch_size_demo)
                     gt.stamp("batch sampling", unique=False)
                     self.trainer.train(train_data, train_data_demo, use_bc)
                     gt.stamp("training", unique=False)

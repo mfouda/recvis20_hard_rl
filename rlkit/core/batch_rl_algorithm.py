@@ -32,6 +32,7 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         range=1,
         replay_buffer_demo=None,
         warm_up=100,
+        batch_size_demo=64,
     ):
         super().__init__(
             trainer,
@@ -56,6 +57,7 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         self.range = range
         self.replay_buffer_demo = replay_buffer_demo
         self.warm_up = warm_up
+        self.batch_size_demo = batch_size_demo
 
     def _train(self):
         """ should be implemented in the inherited class"""

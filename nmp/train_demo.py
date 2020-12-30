@@ -65,7 +65,7 @@ from nmp import settings
 @click.option("-demo-path", "--demo-path", default="/data/dataset_100.pkl", type=str, help='demo path')
 @click.option("-bc-dist", "--bc-dist", default=False, type=bool, help='mu and std loss')
 @click.option("-warm-up", "--warm-up", default=50, type=int, help='warm-up')
-
+@click.option("-batch-size-demo", "--batch-size-demo", default=64, type=int, help='warm-up')
 
 
 def main(
@@ -112,6 +112,7 @@ def main(
     demo_path,
     bc_dist,
     warm_up,
+    batch_size_demo,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -189,6 +190,7 @@ def main(
                             n_rollout_steps=n_rollout_steps),
         pretrain_path=pretrain_path,
         warm_up=warm_up,
+        batch_size_demo=batch_size_demo,
     )
     if mode == "her":
         variant["replay_buffer_kwargs"].update(
