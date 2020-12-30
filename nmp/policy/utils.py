@@ -29,11 +29,12 @@ def load(log_dir, exp_name, cpu, stochastic):
     return policy
 
 
-def runs(rollout_fn, process_path, episodes, path_all, perfect=False):
+def runs(rollout_fn, process_path, episodes, path_all, perfect=False, render_gen_data=False):
     gen = range(episodes)
     if episodes > 1:
         gen = tqdm(gen)
     paths = []
+
     for i in gen:
         path = rollout_fn()
         paths.append(path)
@@ -63,7 +64,7 @@ def runs(rollout_fn, process_path, episodes, path_all, perfect=False):
             for done in path["env_infos"]["success"]:
                 path_all["Done"].append(done)
 
-        process_path(path)
+        process_path(path, render_gen_data)
     return paths
 
 
@@ -115,17 +116,18 @@ def evaluate(rollout_fn, episodes):
     return success_rate, collisions, paths_states
 
 
-def render(env, rollout_fn, nb_paths, output_path, perfect=False):
+def render(env, rollout_fn, nb_paths, output_path, perfect=False, render_gen_data=False):
     count = []
 
-    def process_path(path):
+    def process_path(path, render_gen_data):
         print(f"Episode cumulative reward: {np.sum(path['rewards'])}")
         n_steps = len(path["terminals"])
         if path["env_infos"]["success"][-1]:
             print(f"Success after {n_steps} steps.")
         else:
             print(f"Failure after {n_steps} steps.")
-        env.render()
+        if render_gen_data:
+            env.render()
         time.sleep(2)
         print(len(count))
         count.append(1)
@@ -158,7 +160,7 @@ def render(env, rollout_fn, nb_paths, output_path, perfect=False):
 
     qq = 0
     while qq < nb_paths: #True:
-        path = runs(rollout_fn, process_path, 1, path_all, perfect=perfect)
+        path = runs(rollout_fn, process_path, 1, path_all, perfect=perfect, render_gen_data=render_gen_data)
         qq += 1
 
     print("number of transitions: ", len(path_all["actions"]))

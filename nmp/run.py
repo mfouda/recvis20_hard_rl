@@ -37,8 +37,10 @@ from rlkit.samplers.rollout_functions import (
 @click.option("-n", "--output-path", default='nmp/data/data.pkl',
               type=str, help="output path")
 @click.option("-perfect", "--perfect", default=False, is_flag=True, help="output path")
+@click.option("-render-gen-data", "--render-gen-data", default=False, is_flag=True, help="render_gen_data")
 
-def main(env_name, exp_name, seed, horizon, nb_paths, episodes, cpu, stochastic, output_path, perfect):
+def main(env_name, exp_name, seed, horizon, nb_paths, episodes, cpu, stochastic,
+         output_path, perfect, render_gen_data):
     if not cpu:
         set_gpu_mode(True)
     set_seed(seed)
@@ -66,7 +68,7 @@ def main(env_name, exp_name, seed, horizon, nb_paths, episodes, cpu, stochastic,
             env,
             policy,
             horizon,
-            render,
+            render=render_gen_data,
             observation_key="observation",
             desired_goal_key="desired_goal",
             representation_goal_key="representation_goal",
@@ -75,7 +77,8 @@ def main(env_name, exp_name, seed, horizon, nb_paths, episodes, cpu, stochastic,
 
     print("number of paths: ", nb_paths)
     if render:
-        paths = utils.render(env, rollout_fn, nb_paths, output_path=output_path, perfect=perfect)
+        paths = utils.render(env, rollout_fn, nb_paths, output_path=output_path,
+                             perfect=perfect, render_gen_data=render_gen_data)
     else:
         success_rate, n_col, paths_states = utils.evaluate(rollout_fn, episodes)
         print(f"Success rate: {success_rate} - Collisions: {n_col}")
