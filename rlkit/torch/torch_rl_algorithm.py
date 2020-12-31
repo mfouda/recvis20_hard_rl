@@ -382,4 +382,4 @@ class TorchfDBatchRLAlgorithm(BatchRLAlgorithm):
 
             stats = self.eval_data_collector.get_diagnostics()
             success_rate = stats["SuccessRate"]
-            self._end_epoch(epoch, self.range)
+            self._end_epoch(epoch, self.range, self.save_models)

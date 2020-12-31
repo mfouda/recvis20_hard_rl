@@ -165,7 +165,8 @@ class CustomLSTMCell(BaseCell):
     def reset(self):
         # TODO make this trainable
         self.hidden_var = torch.zeros(self.batch_size, self.get_state_size(), device=self.device)
-        
+        self.hidden_var_explore = torch.zeros(1, self.get_state_size(), device=self.device)
+
     def get_state_size(self):
         return self.hidden_size * self.n_layers * 2
     
@@ -197,8 +198,12 @@ class CustomLSTMCell(BaseCell):
         embedded = self.embed(cell_input.view(-1, self.input_size))
         h_in = embedded
         for i in range(self.n_layers):
-            self.hidden[i] = self.lstm[i](h_in, self.hidden[i])
-            h_in = self.hidden[i][0]
+            if embedded.shape[0] > 1:
+              self.hidden[i] = self.lstm[i](h_in, self.hidden[i])
+              h_in = self.hidden[i][0]
+            else:
+              self.hidden_explore[i] = self.lstm[i](h_in, self.hidden_explore[i])
+              h_in = self.hidden_explore[i][0]
         output = self.output(h_in)
         return AttrDict(output=output.view(list(output.shape) + inp_extra_dim))
     
@@ -209,6 +214,14 @@ class CustomLSTMCell(BaseCell):
     @hidden_var.setter
     def hidden_var(self, var):
         self.hidden = self.var2state(var)
+
+    @property
+    def hidden_var_explore(self):
+        return self.state2var(self.hidden_explore)
+
+    @hidden_var.setter
+    def hidden_var_explore(self, var):
+        self.hidden_explore = self.var2state(var)
 
 
 class BareLSTMCell(CustomLSTMCell):

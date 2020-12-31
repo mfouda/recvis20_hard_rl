@@ -583,7 +583,10 @@ class SACSkillPriorTrainer(TorchTrainer):
         """
         Policy and Alpha Loss
         """
-        _, new_obs_actions, policy_mean, policy_log_std, policy_log_pi, *_ = self.policy(obs)
+        z_policy = self.policy(obs)
+
+        new_obs_actions, policy_mean, policy_log_std, policy_log_pi = z_policy.mu, z_policy.mu, z_policy.log_sigma, \
+                                                                          z_policy.log_prob
 
         _, prior_action, prior_mean, prior_log_std, prior_log_pi, *_  = self.prior(obs)
         kl_div = kl_divergence(policy_log_std, policy_mean, prior_log_std, prior_mean)
@@ -594,7 +597,7 @@ class SACSkillPriorTrainer(TorchTrainer):
             self.alpha_optimizer.zero_grad()
             alpha_loss.backward()
             self.alpha_optimizer.step()
-            alpha = self.log_alpha.exp()
+            alpha = self.alpha
         else:
             alpha_loss = 0
             alpha = self.alpha
@@ -662,7 +665,7 @@ class SACSkillPriorTrainer(TorchTrainer):
             Eval should set this to None.
             This way, these statistics are only computed for one batch.
             """
-            policy_loss = (log_pi - q_new_actions).mean()
+            policy_loss = (alpha * kl_div - q_new_actions).mean()
 
             self.eval_statistics["QF1 Loss"] = np.mean(ptu.get_numpy(qf1_loss))
             self.eval_statistics["QF2 Loss"] = np.mean(ptu.get_numpy(qf2_loss))
@@ -686,7 +689,7 @@ class SACSkillPriorTrainer(TorchTrainer):
                 create_stats_ordered_dict("Q Targets", ptu.get_numpy(q_target), )
             )
             self.eval_statistics.update(
-                create_stats_ordered_dict("Log Pis", ptu.get_numpy(log_pi), )
+                create_stats_ordered_dict("Log Pis", ptu.get_numpy(new_policy_log_pi), )
             )
             self.eval_statistics.update(
                 create_stats_ordered_dict("Policy mu", ptu.get_numpy(policy_mean), )
@@ -723,7 +726,7 @@ class SACSkillPriorTrainer(TorchTrainer):
 
     def get_snapshot(self):
         snapshot = dict(
-            policy=self.policy,
+            policy={},
             qf1=self.qf1,
             qf2=self.qf2,
             target_qf1=self.target_qf1,

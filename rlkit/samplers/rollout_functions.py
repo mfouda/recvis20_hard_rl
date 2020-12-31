@@ -433,8 +433,8 @@ def hrl_multitask_rollout(
         g = o[representation_goal_key]
         new_obs = np.hstack((s, g))
         a_z, agent_info = agent.get_action(new_obs, **get_action_kwargs)
-        a = a_z[0]
-        z = a_z[1]
+        a = a_z[0][0]
+        z = a_z[1][0]
         i = 0
         reward=0
         while i < skill_length:

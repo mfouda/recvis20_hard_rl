@@ -35,6 +35,7 @@ class ObsDictRelabelingBuffer(ReplayBuffer):
         achieved_goal_key="achieved_goal",
         representation_goal_key="representation_goal",
         env_infos_sizes=None,
+        action_dim=None,
     ):
         if internal_keys is None:
             internal_keys = []
@@ -63,10 +64,13 @@ class ObsDictRelabelingBuffer(ReplayBuffer):
         self.desired_goal_key = desired_goal_key
         self.achieved_goal_key = achieved_goal_key
         self.representation_goal_key = representation_goal_key
-        if isinstance(self.env.action_space, Discrete):
-            self._action_dim = env.action_space.n
+        if action_dim is not None:
+            self._action_dim = action_dim
         else:
-            self._action_dim = env.action_space.low.size
+            if isinstance(self.env.action_space, Discrete):
+                self._action_dim = env.action_space.n
+            else:
+                self._action_dim = env.action_space.low.size
 
         self._actions = np.zeros(
             (max_replay_buffer_size, self._action_dim), dtype=np.float32

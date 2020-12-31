@@ -60,6 +60,8 @@ from nmp import settings
 
 @click.option("-pretrain-path", "--pretrain-path", default=None, type=str, help='none')
 
+@click.option("-no-save-models", "--no-save-models", is_flag=False, default=True)
+
 
 
 def main(
@@ -102,6 +104,7 @@ def main(
     range_log,
     start_grid_size,
     pretrain_path,
+    no_save_models,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -125,6 +128,10 @@ def main(
     # learning rate and soft update linear scaling
     policy_lr = learning_rate
     qf_lr = learning_rate
+    if skill_prior:
+        action_dim_prior = nz_vae
+    else:
+        action_dim_prior = None
     variant = dict(
         env_name=env_name,
         algorithm="sac",
@@ -134,7 +141,8 @@ def main(
         mode=mode,
         archi=archi,
         start_grid_size=start_grid_size,
-        replay_buffer_kwargs=dict(max_replay_buffer_size=replay_buffer_size,),
+        save_models=no_save_models,
+        replay_buffer_kwargs=dict(max_replay_buffer_size=replay_buffer_size,action_dim=action_dim_prior),
         algorithm_kwargs=dict(
             batch_size=batch_size,
             num_epochs=epochs,

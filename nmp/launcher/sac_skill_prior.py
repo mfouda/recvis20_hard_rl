@@ -39,9 +39,9 @@ from spirl.utils.pytorch_utils import map2torch, map2np, no_batchnorm_update
 
 
 class SkillPriorInference(nn.Module):
-    def __init__(self, model):
+    def __init__(self, model, device):
         super().__init__()
-        self.model = model
+        self.model = model.to(device)
 
     def forward(self, obs):
         z = self.model(obs)
@@ -65,7 +65,7 @@ class SkillPriorAgent(nn.Module, ExplorationPolicy):
         self.decoder_input_initalizer = self._build_decoder_initializer(size=self.variant["decoder_kwargs"]["action_dim"])
         self.decoder_hidden_initalizer = self._build_decoder_initializer(size=self.decoder.cell.get_state_size())
 
-        self.policy = policy
+        self.policy = policy.to(device)
 
 
 
@@ -90,13 +90,13 @@ class SkillPriorAgent(nn.Module, ExplorationPolicy):
 
         if not deterministic:
             log_std = z.log_sigma
-            log_prob = z.log_prob
+            log_prob = z.log_prob(mean)
             # sample latent variable
             z_sample = z.sample()
         else:
             log_std = None
             log_prob = None
-            z_sample = z
+            z_sample = z.mu
         # decode
 
         with no_batchnorm_update(self.policy) if obs.shape[0] == 1 else contextlib.suppress():
@@ -229,7 +229,7 @@ def get_networks(variant, expl_env, device, batch_size):
                           final_activation=None,
                           ),
     )
-    prior = SkillPriorInference(prior)
+    prior = SkillPriorInference(prior, device)
 
     policy = nn.Sequential(
         # ResizeSpatial(self._hp.prior_input_res),
@@ -244,14 +244,14 @@ def get_networks(variant, expl_env, device, batch_size):
                           final_activation=None,
                           ),
     )
-    policy = SkillPriorInference(policy)
+    policy = SkillPriorInference(policy, device)
 
     decoder = RecurrentPredictor(nz_mid_lstm=variant["decoder_kwargs"]["nz_mid_lstm"],
                                  n_lstm_layers=variant["decoder_kwargs"]["n_lstm_layers"],
                                  device=device,
                                  batch_size=batch_size,
                                  input_size=variant["decoder_kwargs"]["action_dim"] + variant["policy_kwargs"]["nz_vae"],
-                                 output_size=variant["decoder_kwargs"]["action_dim"])
+                                 output_size=expl_env.action_space.low.size) #variant["decoder_kwargs"]["action_dim"])
 
 
     print("Policy:")
@@ -313,6 +313,7 @@ def sac_skill_prior(variant):
         variant, expl_env, device=ptu.device, batch_size=variant["algorithm_kwargs"]["batch_size"],
     )
     skill_prior_policy = SkillPriorAgent(policy=policy, decoder=decoder, device=ptu.device, variant=variant)
+    skill_prior = SkillPriorAgent(policy=prior, decoder=decoder, device=ptu.device, variant=variant)
 
     expl_policy = skill_prior_policy
     eval_policy = MakeDeterministic(skill_prior_policy)
@@ -329,7 +330,7 @@ def sac_skill_prior(variant):
         qf2=qf2,
         target_qf1=target_qf1,
         target_qf2=target_qf2,
-        prior=prior,
+        prior=skill_prior,
         **variant["trainer_kwargs"],
     )
     if mode == "her":
