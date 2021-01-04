@@ -263,6 +263,7 @@ class SACfDTrainer(TorchTrainer):
         qf2_optimizer=None,
         gamma_bc=1,
         bc_dist=False,
+        use_filter=False,
     ):
         super().__init__()
         self.env = env
@@ -307,6 +308,7 @@ class SACfDTrainer(TorchTrainer):
         self.gamma_bc = gamma_bc
         self.bc_dist = bc_dist
         self.device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
+        self.use_filter = use_filter
 
     def train(self, np_batch, batch_demo, use_bc=False):
         self._num_train_steps += 1
@@ -356,11 +358,25 @@ class SACfDTrainer(TorchTrainer):
         )
         if use_bc:
             if self.bc_dist:
-                bc_loss = torch.mean(self.bc_loss(policy_mean_demo, actions_demo), dim=-1) + \
-                          torch.mean(self.bc_loss(torch.exp(policy_log_std_demo), torch.ones_like(policy_log_std_demo).to(self.device)*0.5), dim=-1)
+                bc_loss = self.bc_loss(policy_mean_demo, actions_demo) + \
+                          self.bc_loss(torch.exp(policy_log_std_demo), torch.ones_like(policy_log_std_demo).to(self.device)*0.5)
             else:
-                bc_loss = torch.mean(self.bc_loss(new_obs_actions_demo, actions_demo), dim=-1)
+                bc_loss = self.bc_loss(new_obs_actions_demo, actions_demo)
 
+            if self.use_filter:
+                qf_mask = torch.gt(
+                    self.qf_1(torch.cat((obs_demo, actions_demo), dim=-1)),
+                    self.qf_1(torch.cat((obs_demo, new_obs_actions_demo), dim=-1)),
+                ).to(self.device)
+                qf_mask = qf_mask.float()
+                n_qf_mask = int(qf_mask.sum().item())
+
+                if n_qf_mask == 0:
+                    bc_loss = torch.zeros(1, device=self.device)
+                else:
+                    bc_loss = (bc_loss * qf_mask).sum() / n_qf_mask
+
+            bc_loss = torch.mean(bc_loss, dim=-1)
             policy_loss = (alpha * log_pi - q_new_actions).mean() + self.gamma_bc * bc_loss
         else:
             bc_loss = torch.tensor([0])

@@ -66,6 +66,7 @@ from nmp import settings
 @click.option("-bc-dist", "--bc-dist", default=False, type=bool, help='mu and std loss')
 @click.option("-warm-up", "--warm-up", default=None, type=int, help='warm-up')
 @click.option("-batch-size-demo", "--batch-size-demo", default=64, type=int, help='warm-up')
+@click.option("-use-filter", "--use-filter", default=False, type=bool, help='use filter')
 
 
 def main(
@@ -113,6 +114,7 @@ def main(
     bc_dist,
     warm_up,
     batch_size_demo,
+    use_filter,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -171,6 +173,7 @@ def main(
             alpha=alpha,
             gamma_bc=gamma_bc,
             bc_dist=bc_dist,
+            use_filter=use_filter,
         ),
         qf_kwargs=dict(hidden_dim=hidden_dim, n_layers=n_layers, action_dimension=nz_vae),
         policy_kwargs=dict(hidden_dim=hidden_dim,
