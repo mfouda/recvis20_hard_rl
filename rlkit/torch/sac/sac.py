@@ -365,8 +365,8 @@ class SACfDTrainer(TorchTrainer):
 
             if self.use_filter:
                 qf_mask = torch.gt(
-                    self.qf_1(torch.cat((obs_demo, actions_demo), dim=-1)),
-                    self.qf_1(torch.cat((obs_demo, new_obs_actions_demo), dim=-1)),
+                    self.qf1(obs_demo, actions_demo),
+                    self.qf1(obs_demo, new_obs_actions_demo),
                 ).to(self.device)
                 qf_mask = qf_mask.float()
                 n_qf_mask = int(qf_mask.sum().item())
