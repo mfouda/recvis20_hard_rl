@@ -62,8 +62,8 @@ class SkillPriorAgent(nn.Module, ExplorationPolicy):
 
         self.decoder = decoder
 
-        self.decoder_input_initalizer = self._build_decoder_initializer(size=self.variant["decoder_kwargs"]["action_dim"])
-        self.decoder_hidden_initalizer = self._build_decoder_initializer(size=self.decoder.cell.get_state_size())
+        # self.decoder_input_initalizer = self._build_decoder_initializer(size=self.variant["decoder_kwargs"]["action_dim"])
+        # self.decoder_hidden_initalizer = self._build_decoder_initializer(size=self.decoder.cell.get_state_size())
 
         self.policy = policy.to(device)
 
@@ -132,9 +132,9 @@ class SkillPriorAgent(nn.Module, ExplorationPolicy):
         :arg steps: number of steps decoder is rolled out
         """
         ## these to pass also the state to the decoder
-        lstm_init_input = self.decoder_input_initalizer(cond_inputs)
+        # lstm_init_input = self.decoder_input_initalizer(cond_inputs)
         # lstm_init_hidden = self.decoder_hidden_initalizer(cond_inputs)
-        return self.decoder(lstm_initial_inputs=AttrDict(x_t=lstm_init_input), #AttrDict(x_t=lstm_init_input),
+        return self.decoder(lstm_initial_inputs=None, #AttrDict(x_t=lstm_init_input),
                             lstm_static_inputs=AttrDict(z=z),
                             steps=steps,
                             ).pred #lstm_hidden_init=lstm_init_hidden
@@ -156,6 +156,52 @@ def get_replay_buffer(variant, expl_env):
         )
 
     return replay_buffer
+
+def get_model(data, keys):
+    model = None
+    for key in keys:
+        if key in data:
+            model = data[key]
+            break
+    if model is None:
+        raise ValueError(f"model not found in the keys: {data.keys()}")
+    return model
+
+def get_pretrained_networks(exp_path, device):
+    print(exp_path)
+    data = torch.load(
+        exp_path,
+        map_location=device,
+    )
+    shared_base = None
+
+    policy_keys = ["trainer/policy"]
+    policy = get_model(data, policy_keys)
+
+    prior_keys = ["trainer/prior"]
+    prior = get_model(data, prior_keys)
+
+    decoder_keys = ["trainer/decoder"]
+    decoder = get_model(data, decoder_keys)
+
+    qf1_keys = ["evaluation/qf1", "trainer/qf1"]
+    qf1 = get_model(data, qf1_keys)
+
+    qf2_keys = ["evaluation/qf2", "trainer/qf2"]
+    qf2 = get_model(data, qf2_keys)
+
+    target_qf1_keys = ["evaluation/target_qf1", "trainer/target_qf1"]
+    target_qf1 = get_model(data, target_qf1_keys)
+
+    target_qf2_keys = ["evaluation/target_qf2", "trainer/target_qf2"]
+    target_qf2 = get_model(data, target_qf2_keys)
+
+    target_qf2_keys = ["evaluation/target_qf2", "trainer/target_qf2"]
+    target_qf2 = get_model(data, target_qf2_keys)
+
+    nets = [qf1, qf2, target_qf1, target_qf2, policy, shared_base, prior, decoder]
+
+    return nets
 
 
 def get_networks(variant, expl_env, device, batch_size):
@@ -309,9 +355,14 @@ def sac_skill_prior(variant):
         )
 
     replay_buffer = get_replay_buffer(variant, expl_env)
-    qf1, qf2, target_qf1, target_qf2, policy, shared_base, prior, decoder = get_networks(
-        variant, expl_env, device=ptu.device, batch_size=variant["algorithm_kwargs"]["batch_size"],
-    )
+    if variant["pretrain_path"] is not None:
+        qf1, qf2, target_qf1, target_qf2, policy, shared_base, prior, decoder = get_pretrained_networks(variant["pretrain_path"], device=ptu.device)
+        print("we use pretrained models")
+    else:
+        qf1, qf2, target_qf1, target_qf2, policy, shared_base, prior, decoder = get_networks(
+            variant, expl_env, device=ptu.device, batch_size=variant["algorithm_kwargs"]["batch_size"],
+        )
+
     skill_prior_policy = SkillPriorAgent(policy=policy, decoder=decoder, device=ptu.device, variant=variant)
     skill_prior = SkillPriorAgent(policy=prior, decoder=decoder, device=ptu.device, variant=variant)
 

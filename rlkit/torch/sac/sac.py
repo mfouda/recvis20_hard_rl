@@ -602,10 +602,10 @@ class SACSkillPriorTrainer(TorchTrainer):
         """
         Policy and Alpha Loss
         """
-        z_policy = self.policy(obs)
+        _, new_obs_actions, policy_mean, policy_log_std, policy_log_pi = self.policy(obs)
 
-        new_obs_actions, policy_mean, policy_log_std, policy_log_pi = z_policy.mu, z_policy.mu, z_policy.log_sigma, \
-                                                                          z_policy.log_prob
+        # new_obs_actions, policy_mean, policy_log_std, policy_log_pi = z_policy.mu, z_policy.mu, z_policy.log_sigma, \
+        #                                                                   z_policy.log_prob
 
         _, prior_action, prior_mean, prior_log_std, prior_log_pi, *_  = self.prior(obs)
         kl_div = kl_divergence(policy_log_std, policy_mean, prior_log_std, prior_mean)
@@ -745,7 +745,9 @@ class SACSkillPriorTrainer(TorchTrainer):
 
     def get_snapshot(self):
         snapshot = dict(
-            policy={},
+            policy=self.policy.policy,
+            prior=self.prior.policy,
+            decoder=self.prior.decoder,
             qf1=self.qf1,
             qf2=self.qf2,
             target_qf1=self.target_qf1,

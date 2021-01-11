@@ -33,7 +33,7 @@ class BatchRLAlgorithm(BaseRLAlgorithm, metaclass=abc.ABCMeta):
         replay_buffer_demo=None,
         warm_up=100,
         batch_size_demo=64,
-        save_models=False,
+        save_models=True,
     ):
         super().__init__(
             trainer,

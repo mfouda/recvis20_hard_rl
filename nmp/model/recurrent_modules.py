@@ -238,8 +238,8 @@ class BareLSTMCell(CustomLSTMCell):
 class ForwardLSTMCell(CustomLSTMCell):
     """Exposes hidden state, takes initial hidden state input, returns final hidden state."""
 
-    def forward(self, x_t, *cell_input, **cell_kwinput):
-        lsmt_output = super().forward(x_t, *cell_input, **cell_kwinput)
+    def forward(self, *cell_input, **cell_kwinput):
+        lsmt_output = super().forward(*cell_input, **cell_kwinput)
         return AttrDict(x_t=lsmt_output.output)
 
 
