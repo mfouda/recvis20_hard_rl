@@ -310,13 +310,13 @@ class SACfDTrainer(TorchTrainer):
         self.device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
         self.use_filter = use_filter
 
-    def train(self, np_batch, batch_demo, use_bc=False):
+    def train(self, np_batch, batch_demo, use_bc=False, only_bc=False):
         self._num_train_steps += 1
         torch_batch = np_to_pytorch_batch(np_batch)
         torch_batch_demo = np_to_pytorch_batch(batch_demo)
-        self.train_from_torch(torch_batch, torch_batch_demo, use_bc=use_bc)
+        self.train_from_torch(torch_batch, torch_batch_demo, use_bc=use_bc, only_bc=False)
 
-    def train_from_torch(self, batch, batch_demo, use_bc=False):
+    def train_from_torch(self, batch, batch_demo, use_bc=False, only_bc=False):
         rewards = batch["rewards"]
         terminals = batch["terminals"]
         obs = batch["observations"]
@@ -377,7 +377,10 @@ class SACfDTrainer(TorchTrainer):
                     bc_loss = (bc_loss * qf_mask).sum() / n_qf_mask
 
             bc_loss = torch.mean(bc_loss, dim=-1)
-            policy_loss = (alpha * log_pi - q_new_actions).mean() + self.gamma_bc * bc_loss
+            if only_bc:
+                policy_loss = bc_loss
+            else:
+                policy_loss = (alpha * log_pi - q_new_actions).mean() + self.gamma_bc * bc_loss
         else:
             bc_loss = torch.tensor([0])
             policy_loss = (alpha * log_pi - q_new_actions).mean()
