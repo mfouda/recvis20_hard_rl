@@ -353,10 +353,13 @@ class TorchfDBatchRLAlgorithm(BatchRLAlgorithm):
               print("bounds :", self.bounds)
               print("#############")
 
-            if self.warm_up is not None and epoch > self.warm_up:
-                only_bc = False
+            if self.warm_up is not None:
+                if epoch > self.warm_up:
+                    only_bc = False
+                else:
+                    only_bc = True
             else:
-                only_bc = True
+                only_bc = False
             use_bc = True
 
             for _ in range(self.num_train_loops_per_epoch):
