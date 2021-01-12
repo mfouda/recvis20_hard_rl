@@ -5,22 +5,24 @@ from rlkit.torch.networks import FlattenMlp
 from rlkit.torch.sac.policies import MakeDeterministic, TanhGaussianPolicy
 
 from nmp.model.cnn import CNN
-from nmp.model.pointnet import PointNet
+from nmp.model.pointnet import PointNet, NoisyPointNet
 from nmp.policy.tanh_gaussian import (
     TanhGaussianCNNPolicy,
     TanhGaussianPointNetPolicy,
+    NoisyTanhGaussianPointNetPolicy,
 )
 
 
 ARCHI = {
     "mlp": {"vanilla": FlattenMlp, "tanhgaussian": TanhGaussianPolicy},
-    "pointnet": {"vanilla": PointNet, "tanhgaussian": TanhGaussianPointNetPolicy},
+    "pointnet": {"vanilla": PointNet, "tanhgaussian": TanhGaussianPointNetPolicy,
+                 "noisytanh": NoisyTanhGaussianPointNetPolicy, "noisyvanilla": NoisyPointNet},
     "cnn": {"vanilla": CNN, "tanhgaussian": TanhGaussianCNNPolicy},
 }
 
 
 def archi_to_network(archi_name, function_type):
-    allowed_function_type = ["vanilla", "tanhgaussian"]
+    allowed_function_type = ["vanilla", "tanhgaussian", "noisyvanilla", "noisytanh"]
     if function_type not in allowed_function_type:
         raise ValueError(f"Function name should be in {allowed_function_type}")
     return ARCHI[archi_name][function_type]
@@ -30,7 +32,7 @@ def get_policy_network(archi, kwargs, env, policy_type, output_size=None):
     action_dim = env.action_space.low.size
     obs_dim = env.observation_space.spaces["observation"].low.size
     goal_dim = env.observation_space.spaces["representation_goal"].low.size
-    if policy_type == "tanhgaussian":
+    if policy_type in ["tanhgaussian", "noisytanh"]:
         kwargs["obs_dim"] = obs_dim + goal_dim
         kwargs["action_dim"] = action_dim
     else:
@@ -79,7 +81,7 @@ def get_policy_network(archi, kwargs, env, policy_type, output_size=None):
     return policy_class, kwargs
 
 
-def get_q_network(archi, kwargs, env, classification=False):
+def get_q_network(archi, kwargs, env, classification=False, network_type="vanilla"):
     action_dim = env.action_space.low.size
     obs_dim = env.observation_space.spaces["observation"].low.size
     goal_dim = env.observation_space.spaces["representation_goal"].low.size
@@ -99,7 +101,7 @@ def get_q_network(archi, kwargs, env, classification=False):
         obstacles_dim = env.obstacles_dim
         coordinate_frame = env.coordinate_frame
 
-    qf_class = archi_to_network(archi, "vanilla")
+    qf_class = archi_to_network(archi, network_type)
     if archi == "mlp":
         kwargs["input_size"] = obs_dim + goal_dim + q_action_dim
     elif "pointnet" in archi:

@@ -89,9 +89,16 @@ def get_networks(variant, expl_env):
     policy_kwargs = variant["policy_kwargs"]
     shared_base = None
 
-    qf_class, qf_kwargs = utils.get_q_network(variant["archi"], qf_kwargs, expl_env)
+    if variant["trainer_kwargs"]["noisy"]:
+        network_type = "noisyvanilla"
+        policy_type = "noisytanh"
+    else:
+        network_type = "vanilla"
+        policy_type= "tanhgaussian"
+
+    qf_class, qf_kwargs = utils.get_q_network(variant["archi"], qf_kwargs, expl_env, network_type=network_type)
     policy_class, policy_kwargs = utils.get_policy_network(
-        variant["archi"], policy_kwargs, expl_env, "tanhgaussian"
+        variant["archi"], policy_kwargs, expl_env, policy_type,
     )
 
     qf1 = qf_class(**qf_kwargs)

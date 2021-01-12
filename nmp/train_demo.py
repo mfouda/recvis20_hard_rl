@@ -68,6 +68,8 @@ from nmp import settings
 @click.option("-batch-size-demo", "--batch-size-demo", default=64, type=int, help='warm-up')
 @click.option("-use-filter", "--use-filter", default=False, type=bool, help='use filter')
 
+@click.option("-noisy", "--noisy", is_flag=True, default=False)
+
 
 def main(
     env_name,
@@ -115,6 +117,7 @@ def main(
     warm_up,
     batch_size_demo,
     use_filter,
+    noisy,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -174,6 +177,7 @@ def main(
             gamma_bc=gamma_bc,
             bc_dist=bc_dist,
             use_filter=use_filter,
+            noisy=noisy,
         ),
         qf_kwargs=dict(hidden_dim=hidden_dim, n_layers=n_layers, action_dimension=nz_vae),
         policy_kwargs=dict(hidden_dim=hidden_dim,

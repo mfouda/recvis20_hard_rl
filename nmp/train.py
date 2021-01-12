@@ -63,7 +63,7 @@ from nmp import settings
 @click.option("-no-save-models", "--no-save-models", is_flag=False, default=True)
 
 @click.option("-deep-pointnet", "--deep-pointnet", is_flag=True, default=False)
-
+@click.option("-noisy", "--noisy", is_flag=True, default=False)
 
 
 
@@ -110,6 +110,7 @@ def main(
     pretrain_path,
     no_save_models,
     deep_pointnet,
+    noisy,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -160,6 +161,7 @@ def main(
             cur_range=cur_range,
             max_grid_size=max_grid_size,
             range=range_log,
+            noisy=noisy,
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -189,6 +191,7 @@ def main(
                             action_dim=action_dim,
                             n_rollout_steps=n_rollout_steps),
         pretrain_path=pretrain_path,
+
     )
     if mode == "her":
         variant["replay_buffer_kwargs"].update(

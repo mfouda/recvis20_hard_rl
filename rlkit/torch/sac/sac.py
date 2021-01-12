@@ -37,6 +37,7 @@ class SACTrainer(TorchTrainer):
         policy_optimizer=None,
         qf1_optimizer=None,
         qf2_optimizer=None,
+        noisy=False,
     ):
         super().__init__()
         self.env = env
@@ -77,6 +78,7 @@ class SACTrainer(TorchTrainer):
         self.eval_statistics = OrderedDict()
         self._n_train_steps_total = 0
         self._need_to_update_eval_statistics = True
+        self.noisy = noisy
 
     def train_from_torch(self, batch):
         rewards = batch["rewards"]
@@ -87,6 +89,10 @@ class SACTrainer(TorchTrainer):
         """
         Policy and Alpha Loss
         """
+        if self.noisy:
+            self.policy.sample_noise()
+            self.qf1.sample_noise()
+            self.qf2.sample_noise()
         new_obs_actions, policy_mean, policy_log_std, log_pi, *_ = self.policy(
             obs, reparameterize=True, return_log_prob=True,
         )
@@ -264,6 +270,7 @@ class SACfDTrainer(TorchTrainer):
         gamma_bc=1,
         bc_dist=False,
         use_filter=False,
+        noisy=False,
     ):
         super().__init__()
         self.env = env
@@ -309,6 +316,7 @@ class SACfDTrainer(TorchTrainer):
         self.bc_dist = bc_dist
         self.device = torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
         self.use_filter = use_filter
+        self.noisy = noisy
 
     def train(self, np_batch, batch_demo, use_bc=False, only_bc=False):
         self._num_train_steps += 1
@@ -331,6 +339,12 @@ class SACfDTrainer(TorchTrainer):
         """
         Policy and Alpha Loss
         """
+
+        if self.noisy:
+            self.policy.sample_noise()
+            self.qf1.sample_noise()
+            self.qf2.sample_noise()
+
         new_obs_actions, policy_mean, policy_log_std, log_pi, *_ = self.policy(
             obs, reparameterize=True, return_log_prob=True,
         )
