@@ -228,6 +228,7 @@ class NoisyPointNet(nn.Module):
             init_w=3e-3,
             hidden_activation=F.elu,
             deep_pointnet=False,
+            sigma_init=0.017,
             **kwargs,
     ):
         super().__init__()
@@ -273,6 +274,7 @@ class NoisyPointNet(nn.Module):
         #         hidden_activation=hidden_activation,
         #         output_activation=F.elu,
         #     )
+        self.sigma_init = sigma_init
 
         self.init_last_fc(output_size, init_w, self.sigma_init)
 
