@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 from nmp.model.cnn import CNN
-from nmp.model.pointnet import PointNet, NoisyLinear
+from nmp.model.pointnet import PointNet, NoisyPointNet
 from rlkit.policies.base import ExplorationPolicy, Policy
 from rlkit.torch.core import eval_np
 from rlkit.torch.distributions import TanhNormal
@@ -94,7 +94,7 @@ class TanhGaussianPointNetPolicy(PointNet, ExplorationPolicy):
             pre_tanh_value,
         )
 
-class NoisyTanhGaussianPointNetPolicy(NoisyLinear, ExplorationPolicy):
+class NoisyTanhGaussianPointNetPolicy(NoisyPointNet, ExplorationPolicy):
     def __init__(
         self,
         obs_dim,

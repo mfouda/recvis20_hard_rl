@@ -63,7 +63,9 @@ from nmp import settings
 @click.option("-no-save-models", "--no-save-models", is_flag=False, default=True)
 
 @click.option("-deep-pointnet", "--deep-pointnet", is_flag=True, default=False)
+## noisy nets
 @click.option("-noisy", "--noisy", is_flag=True, default=False)
+@click.option("-sigma-init", "--sigma-init", default=0.017, type=float, help='noisy sigma')
 
 
 
@@ -111,6 +113,7 @@ def main(
     no_save_models,
     deep_pointnet,
     noisy,
+    sigma_init,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -161,7 +164,6 @@ def main(
             cur_range=cur_range,
             max_grid_size=max_grid_size,
             range=range_log,
-            noisy=noisy,
         ),
         trainer_kwargs=dict(
             discount=0.99,
@@ -172,8 +174,9 @@ def main(
             reward_scale=reward_scale,
             use_automatic_entropy_tuning=auto_alpha,
             alpha=alpha,
+            noisy=noisy,
         ),
-        qf_kwargs=dict(hidden_dim=hidden_dim, n_layers=n_layers, action_dimension=nz_vae),
+        qf_kwargs=dict(hidden_dim=hidden_dim, n_layers=n_layers, action_dimension=nz_vae, sigma_init=sigma_init),
         policy_kwargs=dict(hidden_dim=hidden_dim,
                            n_layers=n_layers,
                            # mlp_output_size=mlp_output_size,
@@ -184,6 +187,7 @@ def main(
                            normalization=normalization,  # normalization used in policy network ['none', 'batch']
                            nz_vae=nz_vae,
                            deep_pointnet=deep_pointnet,
+                           sigma_init=sigma_init,
      ),
         log_dir=exp_dir,
         decoder_kwargs=dict(nz_mid_lstm=nz_mid_lstm,
