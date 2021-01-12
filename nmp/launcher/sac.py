@@ -58,6 +58,18 @@ def get_pretrained_networks(exp_path, device):
 
     return nets
 
+def get_pretrained_policy(exp_path, device):
+    data = torch.load(
+        exp_path,
+        map_location=device,
+    )
+    shared_base = None
+
+    policy_keys = ["trainer/policy"]
+    policy = get_model(data, policy_keys)
+
+    return policy
+
 
 
 
@@ -153,13 +165,14 @@ def sac(variant):
         )
 
     replay_buffer = get_replay_buffer(variant, expl_env)
+
+
+    qf1, qf2, target_qf1, target_qf2, policy, shared_base = get_networks(
+        variant, expl_env
+    )
     if variant["pretrain_path"] is not None:
-        qf1, qf2, target_qf1, target_qf2, policy, shared_base = get_pretrained_networks(exp_path=variant["pretrain_path"], device=ptu.device)
-        print("we use pretrained models")
-    else:
-        qf1, qf2, target_qf1, target_qf2, policy, shared_base = get_networks(
-            variant, expl_env
-        )
+        policy = get_pretrained_policy(exp_path=variant["pretrain_path"], device=ptu.device)
+        print("we use pretrained models (only policy)")
     expl_policy = policy
     eval_policy = MakeDeterministic(policy)
 

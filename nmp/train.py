@@ -62,6 +62,10 @@ from nmp import settings
 
 @click.option("-no-save-models", "--no-save-models", is_flag=False, default=True)
 
+@click.option("-deep-pointnet", "--deep-pointnet", is_flag=True, default=False)
+
+
+
 
 
 def main(
@@ -105,6 +109,7 @@ def main(
     start_grid_size,
     pretrain_path,
     no_save_models,
+    deep_pointnet,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -176,6 +181,7 @@ def main(
                            nz_mid=nz_mid,  # size of the intermediate network layers
                            normalization=normalization,  # normalization used in policy network ['none', 'batch']
                            nz_vae=nz_vae,
+                           deep_pointnet=deep_pointnet,
      ),
         log_dir=exp_dir,
         decoder_kwargs=dict(nz_mid_lstm=nz_mid_lstm,
