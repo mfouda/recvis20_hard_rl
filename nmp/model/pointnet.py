@@ -185,7 +185,7 @@ def process_input(input_indices, elem_dim, coordinate_frame, *input):
 
 # Noisy linear layer with independent Gaussian noise
 class NoisyLinear(nn.Linear):
-  def __init__(self, in_features, out_features, sigma_init=0.017, bias=True):
+  def __init__(self, in_features, out_features, sigma_init=0.017, bias=True, device=False):
     super(NoisyLinear, self).__init__(in_features, out_features, bias=True)  # TODO: Adapt for no bias
     # µ^w and µ^b reuse self.weight and self.bias
     self.sigma_init = sigma_init
@@ -194,6 +194,7 @@ class NoisyLinear(nn.Linear):
     self.register_buffer('epsilon_weight', torch.zeros(out_features, in_features))
     self.register_buffer('epsilon_bias', torch.zeros(out_features))
     self.reset_parameters()
+    self.device = device
 
   def reset_parameters(self):
     if hasattr(self, 'sigma_weight'):  # Only init after all params added (otherwise super().__init__() fails)
@@ -203,7 +204,7 @@ class NoisyLinear(nn.Linear):
       init.constant(self.sigma_bias, self.sigma_init)
 
   def forward(self, input):
-    return F.linear(input, self.weight + self.sigma_weight * Variable(self.epsilon_weight), self.bias + self.sigma_bias * Variable(self.epsilon_bias))
+    return F.linear(input, self.weight + self.sigma_weight * Variable(self.epsilon_weight).to(self.device), self.bias + self.sigma_bias * Variable(self.epsilon_bias).to(self.device))
 
   def sample_noise(self):
     self.epsilon_weight = torch.randn(self.out_features, self.in_features)
@@ -229,6 +230,7 @@ class NoisyPointNet(nn.Module):
             hidden_activation=F.elu,
             deep_pointnet=False,
             sigma_init=0.017,
+            device="cpu",
             **kwargs,
     ):
         super().__init__()
@@ -275,14 +277,15 @@ class NoisyPointNet(nn.Module):
         #         output_activation=F.elu,
         #     )
         self.sigma_init = sigma_init
+        self.device = device
 
         self.init_last_fc(output_size, init_w, self.sigma_init)
 
     def init_last_fc(self, output_size, init_w=3e-3, sigma_init=1):
         # self.last_fc = nn.Linear(self.hidden_sizes[-1], output_size)
-        self.last_fc = NoisyLinear(self.hidden_sizes[-1], output_size, sigma_init=sigma_init)
-        self.last_fc.weight.data.uniform_(-init_w, init_w)
-        self.last_fc.bias.data.uniform_(-init_w, init_w)
+        self.last_fc = NoisyLinear(self.hidden_sizes[-1], output_size, sigma_init=sigma_init, device=self.device)
+        # self.last_fc.weight.data.uniform_(-init_w, init_w)
+        # self.last_fc.bias.data.uniform_(-init_w, init_w)
 
     def forward(self, *input, return_features=False):
         obstacles, links, goal, action, mask = process_input(

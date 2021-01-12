@@ -91,7 +91,7 @@ def get_replay_buffer(variant, expl_env):
     return replay_buffer
 
 
-def get_networks(variant, expl_env):
+def get_networks(variant, expl_env, device="cpu"):
     """
     Define Q networks and policy network
     """
@@ -102,6 +102,8 @@ def get_networks(variant, expl_env):
     if variant["trainer_kwargs"]["noisy"]:
         network_type = "noisyvanilla"
         policy_type = "noisytanh"
+        policy_kwargs["device"] = device
+        qf_kwargs["device"] = device
     else:
         network_type = "vanilla"
         policy_type= "tanhgaussian"
@@ -175,7 +177,7 @@ def sac(variant):
 
 
     qf1, qf2, target_qf1, target_qf2, policy, shared_base = get_networks(
-        variant, expl_env
+        variant, expl_env, device=ptu.device,
     )
     if variant["pretrain_path"] is not None:
         policy = get_pretrained_policy(exp_path=variant["pretrain_path"], device=ptu.device)
