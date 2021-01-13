@@ -870,11 +870,12 @@ class RNDSACTrainer(TorchTrainer):
             obs, reparameterize=True, return_log_prob=True,
         )
 
-        rewards_int = self.rnd_loss(self.f(obs), self.f_hat(obs)).detach()
+        rewards_int = torch.abs(self.f(obs)[0] - self.f_hat(obs)[0]).pow(2).detach()
+        rewards_int = torch.clamp(rewards_int * 10, 0.001, 10)
         rewards += rewards_int
         ### predictor loss
 
-        rnd_loss = self.rnd_loss(self.f(obs), self.f_hat(obs))
+        rnd_loss = self.rnd_loss(self.f(obs)[0], self.f_hat(obs)[0])
 
         if self.use_automatic_entropy_tuning:
             alpha_loss = -(
@@ -945,7 +946,7 @@ class RNDSACTrainer(TorchTrainer):
         self.rnd_optimizer.zero_grad()
         rnd_loss.backward()
         norm_f = nn.utils.clip_grad_norm_(self.f.parameters(), 100)
-        self.rnd_optimizerd.step()
+        self.rnd_optimizer.step()
 
         """
         Save some statistics for eval

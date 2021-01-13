@@ -121,13 +121,17 @@ def get_networks(variant, expl_env, device="cpu"):
     print("Policy:")
     print(policy)
 
-    predictor_kwargs = policy_kwargs.copy()
-    predictor_kwargs["action_dim"] = 1
-    # print(predictor_kwargs["output_size"])
-    predictor = policy_class(**predictor_kwargs)
-    target_predictor = policy_class(**predictor_kwargs)
+    # predictor_kwargs = policy_kwargs.copy()
 
-    nets = [qf1, qf2, target_qf1, target_qf2, policy, shared_base, predictor, target_predictor]
+    # print(predictor_kwargs["output_size"])
+    pred_class, predictor_kwargs = utils.get_policy_network(
+        variant["archi"], policy_kwargs, expl_env, "vanilla",
+    )
+    predictor_kwargs["action_dim"] = 1
+    predictor = pred_class(**predictor_kwargs)
+    target_predictor = pred_class(**predictor_kwargs)
+
+    nets = [qf1, qf2, target_qf1, target_qf2, policy, shared_base, predictor.to(device), target_predictor.to(device)]
     print(f"Q function num parameters: {qf1.num_params()}")
     print(f"Policy num parameters: {policy.num_params()}")
 
