@@ -97,6 +97,7 @@ def get_networks(variant, expl_env, device="cpu"):
     """
     qf_kwargs = variant["qf_kwargs"]
     policy_kwargs = variant["policy_kwargs"]
+    predictor_kwargs = variant["policy_kwargs"].copy()
     shared_base = None
 
     if variant["trainer_kwargs"]["noisy"]:
@@ -125,9 +126,9 @@ def get_networks(variant, expl_env, device="cpu"):
 
     # print(predictor_kwargs["output_size"])
     pred_class, predictor_kwargs = utils.get_policy_network(
-        variant["archi"], policy_kwargs, expl_env, "vanilla",
+        variant["archi"], predictor_kwargs, expl_env, "vanilla",
     )
-    predictor_kwargs["action_dim"] = 1
+    predictor_kwargs["output_size"] = 1
     predictor = pred_class(**predictor_kwargs)
     target_predictor = pred_class(**predictor_kwargs)
 

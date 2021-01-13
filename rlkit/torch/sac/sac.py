@@ -875,7 +875,7 @@ class RNDSACTrainer(TorchTrainer):
         rewards += rewards_int
         ### predictor loss
 
-        rnd_loss = self.rnd_loss(self.f(obs)[0], self.f_hat(obs)[0])
+        rnd_loss = self.rnd_loss(self.f(obs)[0], self.f_hat(obs).detach()[0])
 
         if self.use_automatic_entropy_tuning:
             alpha_loss = -(
