@@ -7,7 +7,7 @@ from rlkit.launchers.launcher_util import set_seed, setup_logger
 from nmp.launcher.sac import sac
 from nmp.launcher.sac_skill_prior import sac_skill_prior
 from nmp import settings
-
+from nmp.launcher.sac_rnd import sac_rnd
 
 @click.command(help="nmp.train env_name exp_name")
 @click.option("-env-name", default='Maze-grid-v3', type=str)
@@ -67,6 +67,8 @@ from nmp import settings
 @click.option("-noisy", "--noisy", is_flag=True, default=False)
 @click.option("-sigma-init", "--sigma-init", default=0.017, type=float, help='noisy sigma')
 
+## explore
+@click.option("-rnd-explore", "--rnd-explore", is_flag=True, default=False)
 
 
 
@@ -114,6 +116,7 @@ def main(
     deep_pointnet,
     noisy,
     sigma_init,
+    rnd_explore,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -220,6 +223,8 @@ def main(
     if skill_prior:
         print("skill prior training ...")
         sac_skill_prior(variant)
+    elif rnd_explore:
+        sac_rnd(variant)
     else:
         sac(variant)
 

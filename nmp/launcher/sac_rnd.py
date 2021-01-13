@@ -15,7 +15,7 @@ from rlkit.samplers.data_collector import (
 )
 from rlkit.torch.her.her import HERTrainer
 from rlkit.torch.sac.policies import MakeDeterministic
-from rlkit.torch.sac.sac import SACTrainer
+from rlkit.torch.sac.sac import SACTrainer, RNDSACTrainer
 from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 
 
@@ -121,7 +121,13 @@ def get_networks(variant, expl_env, device="cpu"):
     print("Policy:")
     print(policy)
 
-    nets = [qf1, qf2, target_qf1, target_qf2, policy, shared_base]
+    predictor_kwargs = policy_kwargs.copy()
+    predictor_kwargs["action_dim"] = 1
+    # print(predictor_kwargs["output_size"])
+    predictor = policy_class(**predictor_kwargs)
+    target_predictor = policy_class(**predictor_kwargs)
+
+    nets = [qf1, qf2, target_qf1, target_qf2, policy, shared_base, predictor, target_predictor]
     print(f"Q function num parameters: {qf1.num_params()}")
     print(f"Policy num parameters: {policy.num_params()}")
 
@@ -157,7 +163,7 @@ def get_path_collector(variant, expl_env, eval_env, policy, eval_policy, grid_si
     return expl_path_collector, eval_path_collector
 
 
-def sac(variant):
+def sac_rnd(variant):
     expl_env = gym.make(variant["env_name"])
     eval_env = gym.make(variant["env_name"])
     expl_env.seed(variant["seed"])
@@ -176,7 +182,7 @@ def sac(variant):
     replay_buffer = get_replay_buffer(variant, expl_env)
 
 
-    qf1, qf2, target_qf1, target_qf2, policy, shared_base = get_networks(
+    qf1, qf2, target_qf1, target_qf2, policy, shared_base, predictor, target_predictor = get_networks(
         variant, expl_env, device=ptu.device,
     )
     if variant["pretrain_path"] is not None:
@@ -190,13 +196,15 @@ def sac(variant):
     )
 
     mode = variant["mode"]
-    trainer = SACTrainer(
+    trainer = RNDSACTrainer(
         env=eval_env,
         policy=policy,
         qf1=qf1,
         qf2=qf2,
         target_qf1=target_qf1,
         target_qf2=target_qf2,
+        predictor=predictor,
+        target_predictor=target_predictor,
         **variant["trainer_kwargs"],
     )
     if mode == "her":
