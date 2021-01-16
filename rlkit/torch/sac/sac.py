@@ -871,7 +871,7 @@ class RNDSACTrainer(TorchTrainer):
         )
 
         rewards_int = torch.abs(self.f(obs)[0] - self.f_hat(obs)[0]).pow(2).detach()
-        rewards_int = torch.clamp(rewards_int * 10, 0.001, 10)
+        rewards_int = torch.clamp(rewards_int * 1e8, 0, 5)
         rewards += rewards_int
         ### predictor loss
 
