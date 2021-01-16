@@ -58,6 +58,18 @@ def get_pretrained_networks(exp_path, device):
 
     return nets
 
+def get_pretrained_policy(exp_path, device):
+    data = torch.load(
+        exp_path,
+        map_location=device,
+    )
+    shared_base = None
+
+    policy_keys = ["trainer/policy"]
+    policy = get_model(data, policy_keys)
+
+    return policy
+
 
 
 
@@ -79,7 +91,7 @@ def get_replay_buffer(variant, expl_env):
     return replay_buffer
 
 
-def get_networks(variant, expl_env):
+def get_networks(variant, expl_env, device="cpu"):
     """
     Define Q networks and policy network
     """
@@ -87,9 +99,18 @@ def get_networks(variant, expl_env):
     policy_kwargs = variant["policy_kwargs"]
     shared_base = None
 
-    qf_class, qf_kwargs = utils.get_q_network(variant["archi"], qf_kwargs, expl_env)
+    if variant["trainer_kwargs"]["noisy"]:
+        network_type = "vanilla" #"noisyvanilla"
+        policy_type = "noisytanh"
+        policy_kwargs["device"] = device
+        # qf_kwargs["device"] = device
+    else:
+        network_type = "vanilla"
+        policy_type= "tanhgaussian"
+
+    qf_class, qf_kwargs = utils.get_q_network(variant["archi"], qf_kwargs, expl_env, network_type=network_type)
     policy_class, policy_kwargs = utils.get_policy_network(
-        variant["archi"], policy_kwargs, expl_env, "tanhgaussian"
+        variant["archi"], policy_kwargs, expl_env, policy_type,
     )
 
     qf1 = qf_class(**qf_kwargs)
@@ -153,13 +174,14 @@ def sac(variant):
         )
 
     replay_buffer = get_replay_buffer(variant, expl_env)
+
+
+    qf1, qf2, target_qf1, target_qf2, policy, shared_base = get_networks(
+        variant, expl_env, device=ptu.device,
+    )
     if variant["pretrain_path"] is not None:
-        qf1, qf2, target_qf1, target_qf2, policy, shared_base = get_pretrained_networks(exp_path=variant["pretrain_path"], device=ptu.device)
-        print("we use pretrained models")
-    else:
-        qf1, qf2, target_qf1, target_qf2, policy, shared_base = get_networks(
-            variant, expl_env
-        )
+        policy = get_pretrained_policy(exp_path=variant["pretrain_path"], device=ptu.device)
+        print("we use pretrained models (only policy)")
     expl_policy = policy
     eval_policy = MakeDeterministic(policy)
 

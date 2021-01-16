@@ -322,7 +322,7 @@ class TorchfDBatchRLAlgorithm(BatchRLAlgorithm):
                     #     self.curr_thresh -=0.1
             elif self.option is not None and self.option == "cur-v2":
                 if epoch % self.cur_range == 0 or success_rate > 0.8:
-                    if self.upper_x <= 0.8:
+                    if self.upper_x <= 0.6:
                         self.upper_x+=0.2
                         self.upper_y+= 0.2
                         self.bounds = np.array(

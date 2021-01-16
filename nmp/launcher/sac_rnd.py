@@ -13,16 +13,14 @@ from rlkit.samplers.data_collector import (
     GoalConditionedPathCollector,
     MdpPathCollector,
 )
-from rlkit.torch.her.her import HERTrainer, HERfDTrainer
+from rlkit.torch.her.her import HERTrainer
 from rlkit.torch.sac.policies import MakeDeterministic
-from rlkit.torch.sac.sac import SACTrainer, SACfDTrainer
-from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm, TorchfDBatchRLAlgorithm
+from rlkit.torch.sac.sac import SACTrainer, RNDSACTrainer
+from rlkit.torch.torch_rl_algorithm import TorchBatchRLAlgorithm
 
 
 from nmp.launcher import utils
 
-from rlkit.data_management.simple_replay_buffer import DemoSimpleReplayBuffer
-import pickle
 
 def get_model(data, keys):
     model = None
@@ -60,6 +58,18 @@ def get_pretrained_networks(exp_path, device):
 
     return nets
 
+def get_pretrained_policy(exp_path, device):
+    data = torch.load(
+        exp_path,
+        map_location=device,
+    )
+    shared_base = None
+
+    policy_keys = ["trainer/policy"]
+    policy = get_model(data, policy_keys)
+
+    return policy
+
 
 
 
@@ -81,17 +91,20 @@ def get_replay_buffer(variant, expl_env):
     return replay_buffer
 
 
-def get_networks(variant, expl_env):
+def get_networks(variant, expl_env, device="cpu"):
     """
     Define Q networks and policy network
     """
     qf_kwargs = variant["qf_kwargs"]
     policy_kwargs = variant["policy_kwargs"]
+    predictor_kwargs = variant["policy_kwargs"].copy()
     shared_base = None
 
     if variant["trainer_kwargs"]["noisy"]:
-        network_type = "noisyvanilla"
+        network_type = "vanilla" #"noisyvanilla"
         policy_type = "noisytanh"
+        policy_kwargs["device"] = device
+        # qf_kwargs["device"] = device
     else:
         network_type = "vanilla"
         policy_type= "tanhgaussian"
@@ -109,7 +122,17 @@ def get_networks(variant, expl_env):
     print("Policy:")
     print(policy)
 
-    nets = [qf1, qf2, target_qf1, target_qf2, policy, shared_base]
+    # predictor_kwargs = policy_kwargs.copy()
+
+    # print(predictor_kwargs["output_size"])
+    pred_class, predictor_kwargs = utils.get_policy_network(
+        variant["archi"], predictor_kwargs, expl_env, "vanilla",
+    )
+    predictor_kwargs["output_size"] = 1
+    predictor = pred_class(**predictor_kwargs)
+    target_predictor = pred_class(**predictor_kwargs)
+
+    nets = [qf1, qf2, target_qf1, target_qf2, policy, shared_base, predictor.to(device), target_predictor.to(device)]
     print(f"Q function num parameters: {qf1.num_params()}")
     print(f"Policy num parameters: {policy.num_params()}")
 
@@ -145,7 +168,7 @@ def get_path_collector(variant, expl_env, eval_env, policy, eval_policy, grid_si
     return expl_path_collector, eval_path_collector
 
 
-def sacfd(variant):
+def sac_rnd(variant):
     expl_env = gym.make(variant["env_name"])
     eval_env = gym.make(variant["env_name"])
     expl_env.seed(variant["seed"])
@@ -163,17 +186,13 @@ def sacfd(variant):
 
     replay_buffer = get_replay_buffer(variant, expl_env)
 
-    demo_file = open(variant["demo_path"], "rb")
-    demo_data = pickle.load(demo_file)
-    replay_buffer_demo = DemoSimpleReplayBuffer(demo_data)
 
+    qf1, qf2, target_qf1, target_qf2, policy, shared_base, predictor, target_predictor = get_networks(
+        variant, expl_env, device=ptu.device,
+    )
     if variant["pretrain_path"] is not None:
-        qf1, qf2, target_qf1, target_qf2, policy, shared_base = get_pretrained_networks(exp_path=variant["pretrain_path"], device=ptu.device)
-        print("we use pretrained models")
-    else:
-        qf1, qf2, target_qf1, target_qf2, policy, shared_base = get_networks(
-            variant, expl_env
-        )
+        policy = get_pretrained_policy(exp_path=variant["pretrain_path"], device=ptu.device)
+        print("we use pretrained models (only policy)")
     expl_policy = policy
     eval_policy = MakeDeterministic(policy)
 
@@ -182,18 +201,20 @@ def sacfd(variant):
     )
 
     mode = variant["mode"]
-    trainer = SACfDTrainer(
+    trainer = RNDSACTrainer(
         env=eval_env,
         policy=policy,
         qf1=qf1,
         qf2=qf2,
         target_qf1=target_qf1,
         target_qf2=target_qf2,
+        predictor=predictor,
+        target_predictor=target_predictor,
         **variant["trainer_kwargs"],
     )
     if mode == "her":
-        trainer = HERfDTrainer(trainer)
-    algorithm = TorchfDBatchRLAlgorithm(
+        trainer = HERTrainer(trainer)
+    algorithm = TorchBatchRLAlgorithm(
         trainer=trainer,
         exploration_env=expl_env,
         evaluation_env=eval_env,
@@ -202,8 +223,6 @@ def sacfd(variant):
         replay_buffer=replay_buffer,
         **variant["algorithm_kwargs"],
         variant=variant,
-        replay_buffer_demo=replay_buffer_demo,
-        warm_up=variant["warm_up"],
     )
 
     algorithm.to(ptu.device)

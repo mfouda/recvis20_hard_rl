@@ -68,6 +68,9 @@ from nmp import settings
 @click.option("-batch-size-demo", "--batch-size-demo", default=64, type=int, help='warm-up')
 @click.option("-use-filter", "--use-filter", default=False, type=bool, help='use filter')
 
+@click.option("-noisy", "--noisy", is_flag=True, default=False)
+@click.option("-sigma-init", "--sigma-init", default=0.017, type=float, help='noisy sigma')
+
 
 def main(
     env_name,
@@ -115,6 +118,8 @@ def main(
     warm_up,
     batch_size_demo,
     use_filter,
+    noisy,
+    sigma_init,
 ):
     valid_modes = ["vanilla", "her"]
     valid_archi = [
@@ -174,8 +179,9 @@ def main(
             gamma_bc=gamma_bc,
             bc_dist=bc_dist,
             use_filter=use_filter,
+            noisy=noisy,
         ),
-        qf_kwargs=dict(hidden_dim=hidden_dim, n_layers=n_layers, action_dimension=nz_vae),
+        qf_kwargs=dict(hidden_dim=hidden_dim, n_layers=n_layers, action_dimension=nz_vae, sigma_init=sigma_init),
         policy_kwargs=dict(hidden_dim=hidden_dim,
                            n_layers=n_layers,
                            # mlp_output_size=mlp_output_size,
@@ -185,6 +191,7 @@ def main(
                            nz_mid=nz_mid,  # size of the intermediate network layers
                            normalization=normalization,  # normalization used in policy network ['none', 'batch']
                            nz_vae=nz_vae,
+                           sigma_init=sigma_init,
      ),
         log_dir=exp_dir,
         decoder_kwargs=dict(nz_mid_lstm=nz_mid_lstm,
