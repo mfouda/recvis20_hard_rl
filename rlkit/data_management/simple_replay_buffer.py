@@ -130,17 +130,17 @@ class DemoSimpleReplayBuffer(ReplayBuffer):
         for o in  demos["observations"]:
             obs.append(np.concatenate((o["observation"], o["representation_goal"])))
         self._observations = np.array(obs)
-
-        self._rewards = np.array(demos["rewards"])
-        self._terminals = np.array(demos["Done"])
         self._actions = np.array(demos["actions"])
 
-        obs = []
-        for o in demos["next_observations"]:
-            obs.append(np.concatenate((o["observation"], o["representation_goal"])))
-        self._next_obs = np.array(obs)
+        # self._rewards = np.array(demos["rewards"])
+        # self._terminals = np.array(demos["Done"])
+        #
+        # obs = []
+        # for o in demos["next_observations"]:
+        #     obs.append(np.concatenate((o["observation"], o["representation_goal"])))
+        # self._next_obs = np.array(obs)
 
-        self._size = len(self._rewards)
+        self._size = len(self._actions)
         self._agent_infos = np.zeros((self._size, 1))
 
     def add_sample(
@@ -156,12 +156,12 @@ class DemoSimpleReplayBuffer(ReplayBuffer):
     ):
         self._observations[self._top] = observation
         self._actions[self._top] = action
-        self._rewards[self._top] = reward
-        self._terminals[self._top] = terminal
-        self._next_obs[self._top] = next_observation
-
-        for key in self._env_info_keys:
-            self._env_infos[key][self._top] = env_info[key]
+        # self._rewards[self._top] = reward
+        # self._terminals[self._top] = terminal
+        # self._next_obs[self._top] = next_observation
+        #
+        # for key in self._env_info_keys:
+        #     self._env_infos[key][self._top] = env_info[key]
         self._agent_infos[self._top] = "expert" in agent_info
 
         self._advance()
@@ -179,9 +179,9 @@ class DemoSimpleReplayBuffer(ReplayBuffer):
         batch = dict(
             observations=self._observations[indices],
             actions=self._actions[indices],
-            rewards=self._rewards[indices],
-            terminals=self._terminals[indices],
-            next_observations=self._next_obs[indices],
+            # rewards=self._rewards[indices],
+            # terminals=self._terminals[indices],
+            # next_observations=self._next_obs[indices],
             agent_infos=self._agent_infos[indices],
         )
         # for key in self._env_info_keys:

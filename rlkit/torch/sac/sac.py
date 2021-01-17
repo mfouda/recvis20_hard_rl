@@ -332,11 +332,11 @@ class SACfDTrainer(TorchTrainer):
         actions = batch["actions"]
         next_obs = batch["next_observations"]
         # demo
-        rewards_demo = batch_demo["rewards"]
-        terminals_demo = batch_demo["terminals"]
+        # rewards_demo = batch_demo["rewards"]
+        # terminals_demo = batch_demo["terminals"]
         obs_demo = batch_demo["observations"]
         actions_demo = batch_demo["actions"]
-        next_obs_demo = batch_demo["next_observations"]
+        # next_obs_demo = batch_demo["next_observations"]
         """
         Policy and Alpha Loss
         """
