@@ -48,11 +48,14 @@ class MazeObserver(BaseObserver):
         self.edges = edges
         #print("Edges: ", self.edges)
 
-        o = self.observation(o)
-        return o
+        self.o = self.observation(o)
+        return self.o
 
     def get_Edges(self):
         return self.edges
+
+    def get_Obs(self):
+        return self.o
 
     def represent_obstacles(self, edges, ee_pos):
         edges = edges.copy()
