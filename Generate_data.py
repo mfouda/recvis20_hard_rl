@@ -8,7 +8,7 @@ from A_star import AStarPlanner
 def Generate_Exact_data(env,
                         paths = dict(),
                         output_path="dataset.pkl",
-                        bounds = np.array(  [[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0], [0.2, 0.2, 0.0, 0.0, 0.0, 0.0, 1.0]] ),
+                        bounds = None,
                         start = None,
                         filter_simple = True,
                         num_obstacles = 30,
@@ -95,7 +95,8 @@ def Generate_Exact_data(env,
             goal_state = env.goal_state.q[:2]
 
             obs = env.get_Obs()["observation"]
-            paths["observations"].append(obs)
+            observations = {"observation": obs, "representation_goal": goal_state}
+            paths["observations"].append(observations)
 
             x = (rx[i]-current_state[0])/0.18
             y = (ry[i]-current_state[1])/0.18
@@ -111,7 +112,7 @@ def Generate_Exact_data(env,
                 print("goal_state:    ", goal_state)
                 print("action:        ", action)
 
-            env.render()
+            # env.render()
             env.step(action) # take a action
             if time_sleep: time.sleep(0.1)
 
@@ -123,7 +124,7 @@ def Generate_Exact_data(env,
         y = (goal_state[1] - current_state[1]) / 0.18
         action = np.array([x, y])
 
-        env.render()
+        # env.render()
         env.step(action)  # take a action
         if time_sleep: time.sleep(0.1)
 
@@ -144,7 +145,7 @@ def Generate_Exact_data(env,
     output_file.close()
 
 env = gym.make('Maze-grid-v5')
-Generate_Exact_data(env, nb_iters=300, plotting=False, verbose=False, time_sleep=False)
+Generate_Exact_data(env, nb_iters=2000, plotting=False, verbose=False, time_sleep=False)
 
 #
 #import pickle
