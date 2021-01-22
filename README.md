@@ -20,6 +20,7 @@ To launch a training from demonstration you can use the following command:
 python -m nmp.train_demo -env-name Maze-grid-v3 -exp-dir maze_grid_3_bc --replay-buffer-size 75000 --horizon 75 --seed 0 --epochs 2000 -demo-path nmp/data/dataset_maze_5_3000_perfect.pkl --gamma-bc 1e-3 -batch-size-demo 64 -bc-dist False -use-filter False #-warm-up 30
 ```
 The main arguments are:
+
 -`gamma-bc`: the parameter multiplied by the supervised loss (BC Loss).
 
 -`batch-size-demo`: demonstration batch size.
