@@ -3,6 +3,8 @@ This is an implementation for a project at the MVA master at ENS Paris-Saclay in
 **The implementation can be found in the branch recvis20**.
 Please find the instruction to install packages in the main branch (be aware to use the `environment.yml` of this branch), as well as basic instructions to run a standard training.
 
+If you are more familiar with colab you can consider the following example [Link](https://colab.research.google.com/drive/1tllqd0wd8jYnf2u6BI5P-nUWHdd9h1Xt?usp=sharing) (the installation instructions as well as the one for conda are included)
+
 ### Curriculum Learning
 To launch the training with one of the supported options of curriculum learning, you can laucnh the `nmp.train` file and specifying the argument `-option` to one of the following:
 
