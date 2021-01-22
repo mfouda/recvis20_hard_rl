@@ -21,9 +21,13 @@ python -m nmp.train_demo -env-name Maze-grid-v3 -exp-dir maze_grid_3_bc --replay
 ```
 The main arguments are:
 -`gamma-bc`: the parameter multiplied by the supervised loss (BC Loss).
+
 -`batch-size-demo`: demonstration batch size.
+
 -`bc-dist`: to use a Soft version of the BC Loss.
+
 -`use-filter`: to use a filtered BC Loss (in case of imperfect demonstration).
+
 
 To generate a dataset from a pretrained policy, go to branch:`recvis_generate_data` and use the file `mmp/run.py` to generate it.
 
