@@ -1,4 +1,8 @@
-# Learning Obstacle Representations for Neural Motion Planning
+# Hard exploration in RL
+This is an implementation for a project at the MVA master at ENS Paris-Saclay in the course Computer vision and Object recognition, and it consists of proposing a solution for the hard exploration problem in RL in the case of sparse rewards setting. The implementation is an extention of the Robin Strudel [main repository](https://github.com/rstrudel/nmprepr).
+**The implementation can be found in the branch recvis20**.
+
+## Learning Obstacle Representations for Neural Motion Planning
 
 Robin Strudel, Ricardo Garcia, Justin Carpentier, Jean-Paul Laumond, Ivan Laptev, Cordelia Schmid\
 CoRL 2020
